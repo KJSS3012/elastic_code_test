@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  elastic-code:
+    image: postgres:16
+    container_name: elastic-code
+    restart: always
+    environment:
+      POSTGRES_DB: elastic_code
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - elastic_code_data:/var/lib/postgresql/data
+volumes:
+  elastic_code_data:

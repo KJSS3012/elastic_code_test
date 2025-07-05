@@ -8,7 +8,7 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsCPF } from 'class-validator-cpf';
 
-export class CreateFarmerDto {
+export class CreateFarmerWithoutPasswordDto {
   @ApiProperty({ description: "Farmer's CPF", example: '12345678900' })
   @IsString()
   @IsNotEmpty({ message: 'CPF must be provided' })
@@ -34,14 +34,6 @@ export class CreateFarmerDto {
   @IsEmail()
   @IsNotEmpty({ message: 'Email must be provided' })
   email!: string;
-
-  @ApiProperty({
-    description: "Farmer's password",
-    example: 'securePassword123',
-  })
-  @IsString()
-  @IsNotEmpty({ message: 'Password must be provided' })
-  password!: string;
 
   @ApiProperty({
     description: "Farmer's phone number",

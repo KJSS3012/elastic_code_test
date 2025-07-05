@@ -1,4 +1,6 @@
-import { PartialType } from "@nestjs/swagger";
-import { CreateFarmerDto } from "./create-farmer.dto";
+import { PartialType } from '@nestjs/swagger';
+import { CreateFarmerWithoutPasswordDto } from './create-farmer-without-password.dto';
 
-export class UpdateFarmerDto extends PartialType(CreateFarmerDto) { }
+export class UpdateFarmerDto extends PartialType(
+  CreateFarmerWithoutPasswordDto,
+) {}
