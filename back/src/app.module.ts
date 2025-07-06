@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmConfig } from './shared/database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HarvestsModule } from './modules/harvests/harvests.module';
+import { CropsModule } from './modules/crops/crops.module';
 
 @Module({
   imports: [
@@ -13,7 +14,8 @@ import { HarvestsModule } from './modules/harvests/harvests.module';
     TypeOrmConfig,
     FarmersModule,
     HarvestsModule,
-    AuthModule
+    AuthModule,
+    CropsModule
   ],
   controllers: [AppController],
   providers: [AppService],
