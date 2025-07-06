@@ -8,7 +8,6 @@ import { UpdateFarmerPasswordDto } from './dto/update-farmer-password.dto';
 import { FarmerListDto } from './dto/farmer-list.dto';
 import { FarmerDetailDto } from './dto/farmer-detail.dto';
 import { plainToInstance } from 'class-transformer';
-import { Farmer } from './entities/farmer.entity';
 @Injectable()
 export class FarmersService {
   constructor(
