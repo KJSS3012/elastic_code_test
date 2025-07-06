@@ -1,6 +1,7 @@
-import { PartialType } from '@nestjs/swagger';
+import { OmitType, PartialType } from '@nestjs/swagger';
 import { CreateFarmerWithoutPasswordDto } from './create-farmer-without-password.dto';
 
-export class UpdateFarmerDto extends PartialType(
-  CreateFarmerWithoutPasswordDto,
-) {}
+export class UpdateFarmerDto extends OmitType(PartialType(
+  CreateFarmerWithoutPasswordDto),
+  ['id', 'createdAt', 'updatedAt'])
+{ }
