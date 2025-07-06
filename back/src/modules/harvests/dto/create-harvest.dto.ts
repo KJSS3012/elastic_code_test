@@ -1,8 +1,9 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { IsDate, IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { CommonDto } from "src/shared/common/dto/common.dto";
 
-export class CreateHarvestDto {
+export class CreateHarvestDto extends CommonDto {
   @ApiProperty({
     description: "Harvest year",
     example: 2023,
