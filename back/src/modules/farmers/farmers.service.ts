@@ -8,6 +8,7 @@ import { UpdateFarmerPasswordDto } from './dto/update-farmer-password.dto';
 import { FarmerListDto } from './dto/farmer-list.dto';
 import { FarmerDetailDto } from './dto/farmer-detail.dto';
 import { plainToInstance } from 'class-transformer';
+import { Farmer } from './entities/farmer.entity';
 @Injectable()
 export class FarmersService {
   constructor(
@@ -141,5 +142,12 @@ export class FarmersService {
     const saltRounds = parseInt(saltEnv ?? '10', 10);
     const salt = await bcrypt.genSalt(saltRounds);
     return bcrypt.hash(password, salt);
+  }
+
+  async validatePassword(password: string, farmer_pass: string): Promise<boolean> {
+    if (!(await bcrypt.compare(password, farmer_pass))) {
+      throw new BadRequestException('Invalid password');
+    }
+    return true;
   }
 }
