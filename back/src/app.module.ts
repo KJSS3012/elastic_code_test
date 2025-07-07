@@ -7,6 +7,7 @@ import { TypeOrmConfig } from './shared/database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HarvestsModule } from './modules/harvests/harvests.module';
 import { CropsModule } from './modules/crops/crops.module';
+import { PropertiesModule } from './modules/properties/properties.module';
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { CropsModule } from './modules/crops/crops.module';
     FarmersModule,
     HarvestsModule,
     AuthModule,
-    CropsModule
+    CropsModule,
+    PropertiesModule
   ],
   controllers: [AppController],
   providers: [AppService],

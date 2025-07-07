@@ -10,7 +10,6 @@ export class CommonDto {
   })
   @ApiHideProperty()
   @IsEmpty({ message: 'Id should not be set manually.' })
-  @IsUUID()
   id: string;
 
   @ApiProperty({
