@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { HarvestsModule } from './modules/harvests/harvests.module';
 import { CropsModule } from './modules/crops/crops.module';
 import { PropertiesModule } from './modules/properties/properties.module';
+import { PropertyCropHarvestModule } from './modules/property-crop-harvest/property-crop-harvest.module';
 
 @Module({
   imports: [
@@ -17,7 +18,8 @@ import { PropertiesModule } from './modules/properties/properties.module';
     HarvestsModule,
     AuthModule,
     CropsModule,
-    PropertiesModule
+    PropertiesModule,
+    PropertyCropHarvestModule
   ],
   controllers: [AppController],
   providers: [AppService],
