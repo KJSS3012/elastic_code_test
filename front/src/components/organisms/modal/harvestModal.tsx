@@ -1,0 +1,80 @@
+import React from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, Grid
+} from '@mui/material';
+import { type Farm } from '../../../stores/producer/slice';
+
+interface HarvestModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: HarvestFormData) => void;
+  property: Farm;
+}
+
+const harvestSchema = z.object({
+  name: z.string().min(1, 'O nome da safra é obrigatório.'),
+  total_area_ha: z.coerce.number().min(0.1, 'A área deve ser maior que zero.'),
+});
+
+export type HarvestFormData = z.infer<typeof harvestSchema>;
+
+const HarvestModal: React.FC<HarvestModalProps> = ({ open, onClose, onSubmit, property }) => {
+  const { control, handleSubmit, formState: { errors } } = useForm<HarvestFormData>({
+    resolver: zodResolver(harvestSchema),
+    defaultValues: { name: '', total_area_ha: 0 }
+  });
+
+  const totalHarvestArea = property.harvests.reduce((sum, h) => sum + h.total_area_ha, 0);
+  const availableArea = property.arable_area_ha - totalHarvestArea;
+
+  const refinedSchema = harvestSchema.refine(data => data.total_area_ha <= availableArea, {
+    message: `A área não pode exceder o total disponível (${availableArea.toLocaleString('pt-BR')} ha)`,
+    path: ['total_area_ha'],
+  });
+
+  const { control: refinedControl, handleSubmit: refinedHandleSubmit, formState: { errors: refinedErrors } } = useForm<HarvestFormData>({
+    resolver: zodResolver(refinedSchema),
+    defaultValues: { name: '', total_area_ha: 0 }
+  });
+
+
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Adicionar Nova Safra</DialogTitle>
+      <form onSubmit={refinedHandleSubmit(onSubmit)}>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ pt: 1 }}>
+            <Grid size={{ xs: 12 }}>
+              <Controller
+                name="name"
+                control={refinedControl}
+                render={({ field }) => (
+                  <TextField {...field} label="Nome da Safra (ex: Safra Verão 2025)" fullWidth error={!!refinedErrors.name} helperText={refinedErrors.name?.message} />
+                )}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <Controller
+                name="total_area_ha"
+                control={refinedControl}
+                render={({ field }) => (
+                  <TextField {...field} label="Área da Safra (ha)" type="number" fullWidth error={!!refinedErrors.total_area_ha} helperText={refinedErrors.total_area_ha?.message ?? `Área disponível: ${availableArea.toLocaleString('pt-BR')} ha`} />
+                )}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Cancelar</Button>
+          <Button type="submit" variant="contained">Salvar Safra</Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
+
+export default HarvestModal;
