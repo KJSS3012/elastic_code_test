@@ -43,6 +43,18 @@ export class PropertiesController {
     return this.propertiesService.addHarvestCrop(propertyId, data, user);
   }
 
+  // Criar uma safra (harvest) para uma propriedade
+  @Post(':id/harvests')
+  createHarvest(@Param('id') propertyId: string, @Body() data: any, @CurrentUser() user: JwtPayloadInterface) {
+    return this.propertiesService.createHarvest(propertyId, data, user);
+  }
+
+  // Criar uma cultura (crop) em uma safra específica
+  @Post(':propertyId/harvests/:harvestId/crops')
+  createCrop(@Param('propertyId') propertyId: string, @Param('harvestId') harvestId: string, @Body() data: any, @CurrentUser() user: JwtPayloadInterface) {
+    return this.propertiesService.createCrop(propertyId, harvestId, data, user);
+  }
+
   @Delete(':propertyId/harvest/:harvestId')
   removeHarvest(@Param('propertyId') propertyId: string, @Param('harvestId') harvestId: string, @CurrentUser() user: JwtPayloadInterface) {
     return this.propertiesService.removeHarvest(propertyId, harvestId, user);

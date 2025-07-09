@@ -10,7 +10,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { addHarvestToProperty, deleteHarvest, addCropToHarvest, deleteCrop, fetchMyFarms, fetchAllProducers, type Harvest } from '../../stores/producer/slice';
+import { fetchMyFarms, fetchAllProducers, createHarvest, removeHarvest, createCrop, removeCrop, type Harvest } from '../../stores/producer/slice';
 import HarvestModal, { type HarvestFormData } from '../../components/organisms/modal/harvestModal';
 import CropModal, { type CropFormData } from '../../components/organisms/modal/cropModal';
 
@@ -89,18 +89,42 @@ const PropertyDetail: React.FC = () => {
     setCropModalOpen(true);
   };
 
-  const handleHarvestSubmit = (data: HarvestFormData) => {
-    dispatch(addHarvestToProperty({ propertyId: farm.id, harvest: data }));
-    setHarvestModalOpen(false);
+  const handleHarvestSubmit = async (data: HarvestFormData) => {
+    try {
+      await dispatch(createHarvest({ propertyId: farm.id, harvest: data })).unwrap();
+      setHarvestModalOpen(false);
+    } catch (error) {
+      console.error('Erro ao criar safra:', error);
+    }
   };
 
-  const handleCropSubmit = (data: CropFormData) => {
+  const handleCropSubmit = async (data: CropFormData) => {
     if (selectedHarvest) {
-      dispatch(addCropToHarvest({ propertyId: farm.id, harvestId: selectedHarvest.id, crop: data }));
+      try {
+        await dispatch(createCrop({ propertyId: farm.id, harvestId: selectedHarvest.id, crop: data })).unwrap();
+        setCropModalOpen(false);
+        setSelectedHarvest(null);
+      } catch (error) {
+        console.error('Erro ao criar cultura:', error);
+      }
     }
-    setCropModalOpen(false);
-    setSelectedHarvest(null);
-  }
+  };
+
+  const handleDeleteHarvest = async (harvestId: string) => {
+    try {
+      await dispatch(removeHarvest({ propertyId: farm.id, harvestId })).unwrap();
+    } catch (error) {
+      console.error('Erro ao deletar safra:', error);
+    }
+  };
+
+  const handleDeleteCrop = async (harvestId: string, cropId: string) => {
+    try {
+      await dispatch(removeCrop({ propertyId: farm.id, harvestId, cropId })).unwrap();
+    } catch (error) {
+      console.error('Erro ao deletar cultura:', error);
+    }
+  };
 
   return (
     <Container maxWidth="lg">
@@ -158,7 +182,7 @@ const PropertyDetail: React.FC = () => {
                 <Typography variant="h6">Culturas Plantadas</Typography>
                 <div>
                   <Button size="small" onClick={() => handleOpenCropModal(harvest)}>Adicionar Cultura</Button>
-                  <IconButton size="small" onClick={() => dispatch(deleteHarvest({ propertyId: farm.id, harvestId: harvest.id }))}>
+                  <IconButton size="small" onClick={() => handleDeleteHarvest(harvest.id)}>
                     <DeleteIcon />
                   </IconButton>
                 </div>
@@ -177,7 +201,7 @@ const PropertyDetail: React.FC = () => {
                       <TableCell>{crop.name}</TableCell>
                       <TableCell>{crop.planted_area_ha}</TableCell>
                       <TableCell align="right">
-                        <IconButton size="small" onClick={() => dispatch(deleteCrop({ propertyId: farm.id, harvestId: harvest.id, cropId: crop.id }))}>
+                        <IconButton size="small" onClick={() => handleDeleteCrop(harvest.id, crop.id)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </TableCell>

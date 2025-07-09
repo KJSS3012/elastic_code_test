@@ -4,13 +4,17 @@ import { UpdatePropertyDto } from './dto/update-property.dto';
 import { PropertiesRepository } from './properties.repository';
 import { JwtPayloadInterface } from '../auth/interface/jwt.payload.interface';
 import { PropertyCropHarvestService } from '../property-crop-harvest/property-crop-harvest.service';
+import { HarvestsService } from '../harvests/harvests.service';
+import { CropsService } from '../crops/crops.service';
 
 @Injectable()
 export class PropertiesService {
   constructor(
     private readonly propertiesRepository: PropertiesRepository,
     @Inject(forwardRef(() => PropertyCropHarvestService))
-    private readonly propertyCropHarvestService: PropertyCropHarvestService
+    private readonly propertyCropHarvestService: PropertyCropHarvestService,
+    private readonly harvestsService: HarvestsService,
+    private readonly cropsService: CropsService,
   ) { }
 
   async create(createPropertyDto: CreatePropertyDto, user: JwtPayloadInterface) {
@@ -187,6 +191,61 @@ export class PropertiesService {
     };
 
     return this.propertyCropHarvestService.create(harvestCropData);
+  }
+
+  async createHarvest(propertyId: string, data: any, user: JwtPayloadInterface) {
+    // Verificar se a propriedade existe e se o usuário tem permissão
+    const property = await this.propertiesRepository.findOneById(propertyId);
+    if (!property) {
+      throw new BadRequestException('Property not found');
+    }
+
+    if (user.role === 'farmer' && property.farmer_id !== user.id) {
+      throw new ForbiddenException('You can only manage your own properties');
+    }
+
+    // Criar a safra (harvest)
+    const harvestData = {
+      harvest_name: data.name,
+      harvest_year: new Date().getFullYear(),
+      start_date: new Date(),
+      end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 ano depois
+    };
+
+    return this.harvestsService.create(harvestData);
+  }
+
+  async createCrop(propertyId: string, harvestId: string, data: any, user: JwtPayloadInterface) {
+    // Verificar se a propriedade existe e se o usuário tem permissão
+    const property = await this.propertiesRepository.findOneById(propertyId);
+    if (!property) {
+      throw new BadRequestException('Property not found');
+    }
+
+    if (user.role === 'farmer' && property.farmer_id !== user.id) {
+      throw new ForbiddenException('You can only manage your own properties');
+    }
+
+    // Criar a cultura (crop)
+    const cropData = {
+      crop_name: data.name
+    };
+
+    const cropResult = await this.cropsService.create(cropData);
+
+    // Criar a relação PropertyCropHarvest
+    const relationData = {
+      property_id: propertyId,
+      harvest_id: harvestId,
+      crop_id: cropResult.data.id,
+      planted_area_ha: data.planted_area_ha,
+      planting_date: new Date(),
+      harvest_date: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000) // 6 meses depois
+    };
+
+    await this.propertyCropHarvestService.create(relationData);
+
+    return { message: 'Crop created and linked to harvest successfully' };
   }
 
   async removeHarvest(propertyId: string, harvestId: string, user: JwtPayloadInterface) {

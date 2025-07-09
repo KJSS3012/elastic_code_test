@@ -24,45 +24,45 @@ const cropSchema = z.object({
 export type CropFormData = z.infer<typeof cropSchema>;
 
 const CropModal: React.FC<CropModalProps> = ({ open, onClose, onSubmit, harvest }) => {
-    
-    const totalCropsArea = harvest.crops.reduce((sum, c) => sum + c.planted_area_ha, 0);
-    const availableArea = harvest.total_area_ha - totalCropsArea;
 
-    const refinedSchema = cropSchema.refine(data => data.planted_area_ha <= availableArea, {
-        message: `A área da cultura não pode exceder o disponível na safra (${availableArea.toLocaleString('pt-BR')} ha)`,
-        path: ['planted_area_ha'],
-    });
+  const totalCropsArea = (harvest.crops || []).reduce((sum, c) => sum + c.planted_area_ha, 0);
+  const availableArea = harvest.total_area_ha - totalCropsArea;
 
-    const { control, handleSubmit, formState: { errors } } = useForm<CropFormData>({
-        resolver: zodResolver(refinedSchema),
-        defaultValues: { name: '', planted_area_ha: 0 }
-    });
+  const refinedSchema = cropSchema.refine(data => data.planted_area_ha <= availableArea, {
+    message: `A área da cultura não pode exceder o disponível na safra (${availableArea.toLocaleString('pt-BR')} ha)`,
+    path: ['planted_area_ha'],
+  });
+
+  const { control, handleSubmit, formState: { errors } } = useForm<CropFormData>({
+    resolver: zodResolver(refinedSchema),
+    defaultValues: { name: '', planted_area_ha: 0 }
+  });
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Adicionar Cultura na Safra "{harvest.name}"</DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>
-           <Grid container spacing={2} sx={{pt: 1}}>
-                <Grid size={{xs: 12}}>
-                    <Controller
-                        name="name"
-                        control={control}
-                        render={({ field }) => (
-                            <TextField {...field} label="Nome da Cultura (ex: Soja, Milho)" fullWidth error={!!errors.name} helperText={errors.name?.message} />
-                        )}
-                    />
-                </Grid>
-                <Grid size={{xs: 12}}>
-                    <Controller
-                        name="planted_area_ha"
-                        control={control}
-                        render={({ field }) => (
-                            <TextField {...field} label="Área Plantada (ha)" type="number" fullWidth error={!!errors.planted_area_ha} helperText={errors.planted_area_ha?.message ?? `Área disponível na safra: ${availableArea.toLocaleString('pt-BR')} ha`} />
-                        )}
-                    />
-                </Grid>
+          <Grid container spacing={2} sx={{ pt: 1 }}>
+            <Grid size={{ xs: 12 }}>
+              <Controller
+                name="name"
+                control={control}
+                render={({ field }) => (
+                  <TextField {...field} label="Nome da Cultura (ex: Soja, Milho)" fullWidth error={!!errors.name} helperText={errors.name?.message} />
+                )}
+              />
             </Grid>
+            <Grid size={{ xs: 12 }}>
+              <Controller
+                name="planted_area_ha"
+                control={control}
+                render={({ field }) => (
+                  <TextField {...field} label="Área Plantada (ha)" type="number" fullWidth error={!!errors.planted_area_ha} helperText={errors.planted_area_ha?.message ?? `Área disponível na safra: ${availableArea.toLocaleString('pt-BR')} ha`} />
+                )}
+              />
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancelar</Button>

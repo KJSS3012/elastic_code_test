@@ -195,49 +195,22 @@ class ApiService {
     });
   }
 
-  async updateHarvest(propertyId: string, harvestId: string, data: any) {
-    return this.request<any>(`/properties/${propertyId}/harvests/${harvestId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteHarvest(propertyId: string, harvestId: string) {
-    return this.request<any>(`/properties/${propertyId}/harvests/${harvestId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Crops
-  async createCrop(harvestId: string, data: any) {
-    return this.request<any>(`/harvests/${harvestId}/crops`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteCrop(harvestId: string, cropId: string) {
-    return this.request<any>(`/harvests/${harvestId}/crops/${cropId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Harvest and Crop management
-  async addHarvestCrop(propertyId: string, data: any) {
-    return this.request<any>(`/properties/${propertyId}/harvest-crop`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
   async removeHarvest(propertyId: string, harvestId: string) {
     return this.request<any>(`/properties/${propertyId}/harvest/${harvestId}`, {
       method: 'DELETE',
     });
   }
 
-  async removeCrop(propertyId: string, harvestId: string, cropId: string) {
-    return this.request<any>(`/properties/${propertyId}/harvest/${harvestId}/crop/${cropId}`, {
+  // Crops
+  async createCrop(propertyId: string, harvestId: string, data: any) {
+    return this.request<any>(`/properties/${propertyId}/harvests/${harvestId}/crops`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCrop(propertyId: string, harvestId: string, cropId: string) {
+    return this.request<any>(`/properties/${propertyId}/harvests/${harvestId}/crops/${cropId}`, {
       method: 'DELETE',
     });
   }

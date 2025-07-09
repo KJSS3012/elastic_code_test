@@ -70,13 +70,14 @@ const LocationSelect: React.FC<LocationSelectProps> = ({
       loadCidades();
     } else {
       setCidades([]);
-      onCityChange(''); // Limpar cidade quando estado é limpo
     }
-  }, [state, onCityChange]);
+  }, [state]);
 
   const handleStateChange = (newState: string) => {
     onStateChange(newState);
-    onCityChange(''); // Limpar cidade quando estado muda
+    if (newState !== state) {
+      onCityChange(''); // Limpar cidade quando estado muda
+    }
   };
 
   return (

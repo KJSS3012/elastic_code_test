@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { apiService } from "../../services/api";
 import type { DashboardFilters } from "../../types/dashboard";
 
@@ -128,6 +128,64 @@ export const deleteFarm = createAsyncThunk(
   }
 );
 
+// Async thunks for harvests
+export const createHarvest = createAsyncThunk(
+  'producer/createHarvest',
+  async ({ propertyId, harvest }: { propertyId: string; harvest: { name: string; total_area_ha: number } }, { rejectWithValue, dispatch }) => {
+    try {
+      await apiService.createHarvest(propertyId, harvest);
+      // Recarregar as propriedades para obter dados atualizados
+      dispatch(fetchMyFarms());
+      return { propertyId, harvest };
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const removeHarvest = createAsyncThunk(
+  'producer/removeHarvest',
+  async ({ propertyId, harvestId }: { propertyId: string; harvestId: string }, { rejectWithValue, dispatch }) => {
+    try {
+      await apiService.removeHarvest(propertyId, harvestId);
+      // Recarregar as propriedades para obter dados atualizados
+      dispatch(fetchMyFarms());
+      return { propertyId, harvestId };
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Async thunks for crops
+export const createCrop = createAsyncThunk(
+  'producer/createCrop',
+  async ({ propertyId, harvestId, crop }: { propertyId: string; harvestId: string; crop: { name: string; planted_area_ha: number } }, { rejectWithValue, dispatch }) => {
+    try {
+      await apiService.createCrop(propertyId, harvestId, crop);
+      // Recarregar as propriedades para obter dados atualizados
+      dispatch(fetchMyFarms());
+      return { propertyId, harvestId, crop };
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const removeCrop = createAsyncThunk(
+  'producer/removeCrop',
+  async ({ propertyId, harvestId, cropId }: { propertyId: string; harvestId: string; cropId: string }, { rejectWithValue, dispatch }) => {
+    try {
+      await apiService.deleteCrop(propertyId, harvestId, cropId);
+      // Recarregar as propriedades para obter dados atualizados
+      dispatch(fetchMyFarms());
+      return { propertyId, harvestId, cropId };
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const producerSlice = createSlice({
   name: "producer",
   initialState,
@@ -135,49 +193,8 @@ const producerSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    // Actions locais para manipulação rápida (antes de sincronizar com API)
-    addHarvestToProperty: (state, action: PayloadAction<{ propertyId: string; harvest: { name: string; total_area_ha: number } }>) => {
-      const farm = state.myFarms.find(f => f.id === action.payload.propertyId);
-      if (farm) {
-        const newHarvest: Harvest = {
-          id: Date.now().toString(),
-          name: action.payload.harvest.name,
-          year: new Date().getFullYear(),
-          total_area_ha: action.payload.harvest.total_area_ha,
-          crops: []
-        };
-        farm.harvests.push(newHarvest);
-      }
-    },
-    deleteHarvest: (state, action: PayloadAction<{ propertyId: string; harvestId: string }>) => {
-      const farm = state.myFarms.find(f => f.id === action.payload.propertyId);
-      if (farm) {
-        farm.harvests = farm.harvests.filter(h => h.id !== action.payload.harvestId);
-      }
-    },
-    addCropToHarvest: (state, action: PayloadAction<{ propertyId: string; harvestId: string; crop: { name: string; planted_area_ha: number } }>) => {
-      const farm = state.myFarms.find(f => f.id === action.payload.propertyId);
-      if (farm) {
-        const harvest = farm.harvests.find(h => h.id === action.payload.harvestId);
-        if (harvest) {
-          const newCrop: Crop = {
-            id: Date.now().toString(),
-            name: action.payload.crop.name,
-            planted_area_ha: action.payload.crop.planted_area_ha
-          };
-          harvest.crops.push(newCrop);
-        }
-      }
-    },
-    deleteCrop: (state, action: PayloadAction<{ propertyId: string; harvestId: string; cropId: string }>) => {
-      const farm = state.myFarms.find(f => f.id === action.payload.propertyId);
-      if (farm) {
-        const harvest = farm.harvests.find(h => h.id === action.payload.harvestId);
-        if (harvest) {
-          harvest.crops = harvest.crops.filter(c => c.id !== action.payload.cropId);
-        }
-      }
-    },
+    // Note: Removidas as actions locais não utilizadas: addHarvestToProperty, deleteHarvest, addCropToHarvest, deleteCrop
+    // Agora usamos apenas os async thunks para persistir no backend
   },
   extraReducers: (builder) => {
     builder
@@ -252,15 +269,12 @@ const producerSlice = createSlice({
       .addCase(deleteFarm.fulfilled, (state, action) => {
         state.myFarms = state.myFarms.filter(f => f.id !== action.payload);
       });
+    // Note: Removidos os handlers locais para harvest/crop pois estamos recarregando dados via fetchMyFarms
   },
 });
 
 export const {
   clearError,
-  addHarvestToProperty,
-  deleteHarvest,
-  addCropToHarvest,
-  deleteCrop,
 } = producerSlice.actions;
 
 export default producerSlice.reducer;

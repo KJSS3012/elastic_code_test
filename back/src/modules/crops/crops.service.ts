@@ -7,13 +7,14 @@ import { CropsRepository } from './crops.repository';
 export class CropsService {
   constructor(private readonly cropsRepository: CropsRepository) { }
 
-  create(createCropDto: CreateCropDto) {
+  async create(createCropDto: CreateCropDto) {
     try {
       const crop = this.cropsRepository.createEntity(createCropDto);
-      this.cropsRepository.save(crop);
+      const savedCrop = await this.cropsRepository.save(crop);
 
       return {
         message: 'Crop created successfully',
+        data: savedCrop,
       };
     } catch (error) {
       throw new BadRequestException('Error creating crop: ' + error.message);

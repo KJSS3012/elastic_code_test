@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState, type AppDispatch } from '../../stores/store';
 import { createFarm } from '../../stores/producer/slice';
@@ -57,6 +57,15 @@ const PropertyCreate: React.FC = () => {
 
   const watchedState = watch('state');
   const watchedCity = watch('city');
+
+  // Usar useCallback para estabilizar as funções de callback
+  const handleStateChange = useCallback((newState: string) => {
+    setValue('state', newState);
+  }, [setValue]);
+
+  const handleCityChange = useCallback((newCity: string) => {
+    setValue('city', newCity);
+  }, [setValue]);
 
   const onSubmit = async (data: PropertyFormData) => {
     setFormLoading(true);
@@ -131,8 +140,8 @@ const PropertyCreate: React.FC = () => {
               <LocationSelect
                 state={watchedState}
                 city={watchedCity}
-                onStateChange={(newState) => setValue('state', newState)}
-                onCityChange={(newCity) => setValue('city', newCity)}
+                onStateChange={handleStateChange}
+                onCityChange={handleCityChange}
                 stateError={errors.state?.message}
                 cityError={errors.city?.message}
                 disabled={formLoading}
