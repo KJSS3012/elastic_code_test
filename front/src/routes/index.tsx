@@ -1,4 +1,9 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { useSelector, useDispatch } from 'react-redux';
+import { type RootState } from '../stores/store';
+import { useAuthInterceptor } from '../hooks/useAuthInterceptor';
+import { getCurrentUser } from '../stores/auth/slice';
 import MainLayout from "../components/organisms/mainLayout";
 import AuthPage from "../pages/auth";
 import Dashboard from "../pages/dashboard";
@@ -8,26 +13,60 @@ import PropertyList from "../pages/property/list";
 import PropertyDetail from "../pages/property/detail";
 
 
+const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) => {
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.authReducer);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" />;
+  }
+
+  if (adminOnly && user?.role !== 'admin') {
+    return <Navigate to="/dashboard" />;
+  }
+
+  return <>{children}</>;
+};
+
+// Componente interno que usa o hook dentro do contexto do Router
+const RouterContent = () => {
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.authReducer);
+  const dispatch = useDispatch();
+
+  // Ativar interceptor de autenticação dentro do contexto do Router
+  useAuthInterceptor();
+
+  // Buscar perfil do usuário se há token mas não há dados do usuário
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token && !user) {
+      dispatch(getCurrentUser() as any);
+    }
+  }, [dispatch, user]);
+
+  return (
+    <Routes>
+      <Route path="/auth" element={isAuthenticated ? <Navigate to="/dashboard" /> : <AuthPage />} />
+
+      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/producers" element={<ProtectedRoute adminOnly><Producers /></ProtectedRoute>} />
+
+        {/* Rotas de Propriedades */}
+        <Route path="/properties" element={<PropertyList />} />
+        <Route path="/properties/new" element={<PropertyCreate />} />
+        <Route path="/properties/:propertyId" element={<PropertyDetail />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/auth"} />} />
+    </Routes>
+  );
+};
+
 const AppRoutes = () => {
   return (
     <Router>
-      <Routes>
-        <Route path="/auth" element={<AuthPage />} />
-
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<Navigate to="/dashboard" />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/producers" element={<Producers />} />
-
-          {/* Rotas de Propriedades */}
-          <Route path="/properties" element={<PropertyList />} />
-          <Route path="/properties/new" element={<PropertyCreate />} />
-          <Route path="/properties/:propertyId" element={<PropertyDetail />} />
-
-        </Route>
-
-        <Route path="*" element={<Navigate to="/auth" />} />
-      </Routes>
+      <RouterContent />
     </Router>
   );
 };

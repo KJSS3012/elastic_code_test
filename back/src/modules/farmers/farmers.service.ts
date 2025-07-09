@@ -22,7 +22,7 @@ export class FarmersService {
       );
 
       if (existingFarmer) {
-        throw new BadRequestException('Farmer email already exists');
+        throw new BadRequestException('Email already exists');
       }
 
       const hashedPassword = await this.hashPassword(CreateFarmerDto.password);
@@ -37,12 +37,13 @@ export class FarmersService {
         },
       };
     } catch (error) {
-      if (error.code === '23505') {
-        throw new BadRequestException(
-          'Farmer with this CPF or CNPJ already exists',
-        );
+      if (error instanceof BadRequestException) {
+        throw error; // Re-throw BadRequestException as is
       }
-      throw new BadRequestException('Error creating farmer: ' + error.message);
+      if (error.code === '23505') {
+        throw new BadRequestException('CPF or CNPJ already exists');
+      }
+      throw new BadRequestException(`Error creating farmer: ${error.message}`);
     }
   }
 
@@ -64,7 +65,10 @@ export class FarmersService {
       }
       return plainToInstance(FarmerDetailDto, farmer);
     } catch (error) {
-      throw new BadRequestException('Error finding farmer: ' + error.message);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Error finding farmer: ${error.message}`);
     }
   }
 

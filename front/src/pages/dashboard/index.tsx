@@ -1,132 +1,234 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-import { type RootState } from '../../stores/store';
-import { Grid, Card, CardContent, Typography, Box } from '@mui/material';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import React, { useEffect, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { type RootState, type AppDispatch } from '../../stores/store';
+import { fetchAdminDashboardStats, fetchFarmerDashboardStats } from '../../stores/producer/slice';
+import { Grid, Card, CardContent, Typography, Box, CircularProgress } from '@mui/material';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts';
+import { DashboardFiltersComponent } from '../../components/molecules/DashboardFilters';
+import type { DashboardFilters } from '../../types/dashboard';
 
-// Cores para os gráficos
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
 const Dashboard: React.FC = () => {
-  const producers = useSelector((state: RootState) => state.producerReducer.producers);
+  const dispatch = useDispatch<AppDispatch>();
+  const { user } = useSelector((state: RootState) => state.authReducer);
+  const { dashboardStats, loading } = useSelector((state: RootState) => state.producerReducer);
+  const [filters, setFilters] = useState<DashboardFilters>({});
 
-  // Cálculos e formatação de dados... (sem alterações aqui)
-  const totalFarms = producers.reduce((sum, p) => sum + p.farms.length, 0);
-  const totalHectares = producers.reduce(
-    (sum, p) => sum + p.farms.reduce((fSum, f) => fSum + f.total_area_ha, 0),
-    0
-  );
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      dispatch(fetchAdminDashboardStats(filters));
+    } else {
+      dispatch(fetchFarmerDashboardStats(filters));
+    }
+  }, [dispatch, user?.role, filters]);
 
-  const farmsByState = producers.flatMap(p => p.farms).reduce((acc, farm) => {
-    acc[farm.state] = (acc[farm.state] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  const stateChartData = Object.entries(farmsByState).map(([name, value]) => ({ name, value }));
+  const handleFiltersChange = (newFilters: DashboardFilters) => {
+    setFilters(newFilters);
+  };
 
-  const cropsData = {}; // Dados de exemplo até que a propriedade crops seja definida no tipo Farm
-  const cropChartData = [
-    { name: 'Soja', value: 45 },
-    { name: 'Milho', value: 30 },
-    { name: 'Algodão', value: 15 },
-    { name: 'Café', value: 10 }
-  ]; // Dados de exemplo
+  if (loading || !dashboardStats) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-  const landUseData = producers.flatMap(p => p.farms).reduce((acc, farm) => {
-    acc.farmableArea += farm.arable_area_ha;
-    acc.vegetationArea += farm.vegetation_area_ha;
-    return acc;
-  }, { farmableArea: 0, vegetationArea: 0 });
-  const landUseChartData = [
-    { name: 'Área Agricultável', value: landUseData.farmableArea },
-    { name: 'Área de Vegetação', value: landUseData.vegetationArea },
-  ];
+  const isAdmin = user?.role === 'admin';
 
   return (
     <Box>
-      {/* Cards de KPIs */}
+      <Typography variant="h4" component="h1" gutterBottom>
+        {isAdmin ? 'Dashboard Administrativo' : `Bem-vindo, ${user?.producer_name || user?.email || 'Usuário'}`}
+      </Typography>
+
+      {/* Filtros do Dashboard */}
+      <DashboardFiltersComponent
+        currentFilters={filters}
+        onFiltersChange={handleFiltersChange}
+      />
+
+      {/* KPI Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>Total de Fazendas</Typography>
-              <Typography variant="h4" component="div">{totalFarms}</Typography>
+              <Typography color="text.secondary" gutterBottom>
+                {isAdmin ? 'Total de Produtores' : 'Minhas Propriedades'}
+              </Typography>
+              <Typography variant="h4" component="div">
+                {isAdmin ? dashboardStats.totalFarmers : dashboardStats.totalProperties}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>Total de Hectares</Typography>
-              <Typography variant="h4" component="div">{totalHectares.toLocaleString('pt-BR')} ha</Typography>
+              <Typography color="text.secondary" gutterBottom>
+                {isAdmin ? 'Total de Propriedades' : 'Total de Hectares'}
+              </Typography>
+              <Typography variant="h4" component="div">
+                {isAdmin ? dashboardStats.totalProperties : `${dashboardStats.totalHectares} ha`}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid size={{ xs: 12, sm: 12, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>Produtores Cadastrados</Typography>
-              <Typography variant="h4" component="div">{producers.length}</Typography>
+              <Typography color="text.secondary" gutterBottom>
+                {isAdmin ? 'Total de Hectares' : 'Safras Ativas'}
+              </Typography>
+              <Typography variant="h4" component="div">
+                {isAdmin ? `${dashboardStats.totalHectares} ha` : dashboardStats.activeHarvests}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Card>
+            <CardContent>
+              <Typography color="text.secondary" gutterBottom>
+                {isAdmin ? 'Total de Culturas' : 'Culturas Plantadas'}
+              </Typography>
+              <Typography variant="h4" component="div">
+                {dashboardStats.totalCrops}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Gráficos */}
+      {/* Charts */}
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Fazendas por Estado</Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie data={stateChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
-                    {stateChartData.map((_entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Culturas Plantadas</Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie data={cropChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
-                    {cropChartData.map((_entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Uso do Solo (ha)</Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie data={landUseChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
-                    {landUseChartData.map((_entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
+        {isAdmin ? (
+          <>
+            {/* Admin Charts */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Propriedades por Estado</Typography>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={dashboardStats.propertiesByState}>
+                      <XAxis dataKey="state" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#8884d8" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Top 10 Cidades</Typography>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={dashboardStats.topCities}>
+                      <XAxis dataKey="city" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#00C49F" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Culturas Mais Plantadas</Typography>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie data={dashboardStats.cropDistribution} dataKey="area" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+                        {dashboardStats.cropDistribution.map((_: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Uso do Solo (Geral)</Typography>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie data={dashboardStats.landUseDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+                        {dashboardStats.landUseDistribution.map((_: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        ) : (
+          <>
+            {/* Farmer Charts */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Minhas Propriedades</Typography>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={dashboardStats.myProperties}>
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="totalArea" fill="#8884d8" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Distribuição de Culturas</Typography>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie data={dashboardStats.myCrops} dataKey="area" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+                        {dashboardStats.myCrops.map((_: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Uso do Solo nas Minhas Propriedades</Typography>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie data={dashboardStats.myLandUse} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+                        {dashboardStats.myLandUse.map((_: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
       </Grid>
     </Box>
   );

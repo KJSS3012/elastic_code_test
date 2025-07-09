@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { type RootState } from '../../stores/store';
-import { addFarmToProducer, type Farm } from '../../stores/producer/slice';
+import { type RootState, type AppDispatch } from '../../stores/store';
+import { createFarm } from '../../stores/producer/slice';
 import {
   Container,
   Box,
@@ -10,25 +10,24 @@ import {
   TextField,
   Button,
   Paper,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
+import { useNotification } from '../../contexts/NotificationContext';
+import LocationSelect from '../../components/molecules/LocationSelect';
 
 const propertySchema = z.object({
-  producer_id: z.string().min(1, 'Selecione um produtor'),
   farm_name: z.string().min(1, 'O nome da fazenda é obrigatório.'),
   city: z.string().min(1, 'A cidade é obrigatória.'),
-  state: z.string().min(2, 'O estado é obrigatório.').max(2, 'Use a sigla do estado (ex: SP).'),
+  state: z.string().min(2, 'O estado é obrigatório.'),
   total_area_ha: z.coerce.number().min(0.1, 'A área total deve ser maior que zero.'),
   arable_area_ha: z.coerce.number().min(0, 'A área agricultável não pode ser negativa.'),
-  vegetation_area_ha: z.coerce.number().min(0, 'A área de vegetação não pode ser negativa.'),
-}).refine(data => data.arable_area_ha + data.vegetation_area_ha <= data.total_area_ha, {
+  vegetable_area_ha: z.coerce.number().min(0, 'A área de vegetação não pode ser negativa.'),
+}).refine(data => data.arable_area_ha + data.vegetable_area_ha <= data.total_area_ha, {
   message: 'A soma da área agricultável e de vegetação não pode ser maior que a área total.',
   path: ['arable_area_ha'],
 });
@@ -36,42 +35,62 @@ const propertySchema = z.object({
 type PropertyFormData = z.infer<typeof propertySchema>;
 
 const PropertyCreate: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch: AppDispatch = useDispatch();
   const navigate = useNavigate();
-  const producers = useSelector((state: RootState) => state.producerReducer.producers);
+  const { user } = useSelector((state: RootState) => state.authReducer);
+  const { showNotification } = useNotification();
 
-  const { control, handleSubmit, formState: { errors } } = useForm<PropertyFormData>({
+  const [formLoading, setFormLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const { control, handleSubmit, formState: { errors }, setValue, watch } = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
     defaultValues: {
-      producer_id: '',
       farm_name: '',
       city: '',
       state: '',
       total_area_ha: 0,
       arable_area_ha: 0,
-      vegetation_area_ha: 0,
+      vegetable_area_ha: 0,
     }
   });
 
-  const onSubmit = (data: PropertyFormData) => {
-    const newFarm: Farm = {
-      id: Date.now().toString(),
-      farm_name: data.farm_name,
-      city: data.city,
-      state: data.state,
-      total_area_ha: data.total_area_ha,
-      arable_area_ha: data.arable_area_ha,
-      vegetation_area_ha: data.vegetation_area_ha,
-      harvests: []
-    };
+  const watchedState = watch('state');
+  const watchedCity = watch('city');
 
-    dispatch(addFarmToProducer({
-      producerId: data.producer_id,
-      farm: newFarm
-    }));
+  const onSubmit = async (data: PropertyFormData) => {
+    setFormLoading(true);
+    setError(null);
 
-    alert('Propriedade criada com sucesso!');
-    navigate('/properties');
+    try {
+      // Para farmers, criar propriedade diretamente
+      // Para admins, seria necessário selecionar o produtor
+      if (user?.role === 'farmer' && user?.id) {
+        // Adicionar farmer_id do usuário logado e enviar apenas os campos necessários
+        const propertyData = {
+          farmer_id: user.id,
+          farm_name: data.farm_name,
+          city: data.city,
+          state: data.state,
+          total_area_ha: data.total_area_ha,
+          arable_area_ha: data.arable_area_ha,
+          vegetable_area_ha: data.vegetable_area_ha
+        };
+
+        await dispatch(createFarm(propertyData)).unwrap();
+        showNotification('Propriedade criada com sucesso!', 'success');
+        navigate('/properties');
+      } else {
+        setError('Funcionalidade não implementada para administradores');
+        showNotification('Funcionalidade não implementada para administradores', 'error');
+      }
+    } catch (err: any) {
+      const errorMessage = err.message || 'Erro ao criar propriedade';
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
+    } finally {
+      setFormLoading(false);
+    }
   };
 
   return (
@@ -80,31 +99,15 @@ const PropertyCreate: React.FC = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           Cadastrar Nova Propriedade
         </Typography>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3}>
-            <Grid size={{ xs: 12 }}>
-              <Controller
-                name="producer_id"
-                control={control}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.producer_id}>
-                    <InputLabel>Produtor</InputLabel>
-                    <Select {...field} label="Produtor">
-                      {producers.map((producer) => (
-                        <MenuItem key={producer.id} value={producer.id}>
-                          {producer.producer_name} - {producer.document}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.producer_id && (
-                      <Typography variant="caption" color="error">
-                        {errors.producer_id.message}
-                      </Typography>
-                    )}
-                  </FormControl>
-                )}
-              />
-            </Grid>
             <Grid size={{ xs: 12 }}>
               <Controller
                 name="farm_name"
@@ -122,41 +125,20 @@ const PropertyCreate: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 8 }}>
-              <Controller
-                name="city"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Cidade"
-                    variant="outlined"
-                    fullWidth
-                    required
-                    error={!!errors.city}
-                    helperText={errors.city?.message}
-                  />
-                )}
+
+            {/* Campo de Localização (Estado e Cidade) */}
+            <Grid size={{ xs: 12 }}>
+              <LocationSelect
+                state={watchedState}
+                city={watchedCity}
+                onStateChange={(newState) => setValue('state', newState)}
+                onCityChange={(newCity) => setValue('city', newCity)}
+                stateError={errors.state?.message}
+                cityError={errors.city?.message}
+                disabled={formLoading}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Controller
-                name="state"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Estado (UF)"
-                    variant="outlined"
-                    fullWidth
-                    required
-                    inputProps={{ maxLength: 2 }}
-                    error={!!errors.state}
-                    helperText={errors.state?.message}
-                  />
-                )}
-              />
-            </Grid>
+
             <Grid size={{ xs: 12, sm: 4 }}>
               <Controller
                 name="total_area_ha"
@@ -195,7 +177,7 @@ const PropertyCreate: React.FC = () => {
             </Grid>
             <Grid size={{ xs: 12, sm: 4 }}>
               <Controller
-                name="vegetation_area_ha"
+                name="vegetable_area_ha"
                 control={control}
                 render={({ field }) => (
                   <TextField
@@ -205,21 +187,36 @@ const PropertyCreate: React.FC = () => {
                     type="number"
                     fullWidth
                     required
-                    error={!!errors.vegetation_area_ha}
-                    helperText={errors.vegetation_area_ha?.message}
+                    error={!!errors.vegetable_area_ha}
+                    helperText={errors.vegetable_area_ha?.message}
                   />
                 )}
               />
             </Grid>
             <Grid size={{ xs: 12 }}>
-              <Button type="submit" variant="contained" color="primary" size="large">
-                Cadastrar Propriedade
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                size="large"
+                disabled={formLoading}
+                sx={{ mr: 2 }}
+              >
+                {formLoading ? <CircularProgress size={20} /> : 'Cadastrar Propriedade'}
+              </Button>
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={() => navigate('/properties')}
+                disabled={formLoading}
+              >
+                Cancelar
               </Button>
             </Grid>
           </Grid>
         </form>
       </Paper>
-    </Container >
+    </Container>
   );
 };
 

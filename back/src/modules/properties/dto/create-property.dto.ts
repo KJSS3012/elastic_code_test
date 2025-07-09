@@ -1,11 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, IsNumber, IsString, IsUUID } from "class-validator";
-import { CommonDto } from "src/shared/common/dto/common.dto";
 
-export class CreatePropertyDto extends CommonDto {
+export class CreatePropertyDto {
   @ApiProperty({
     description: "Farmer ID",
-    example: "farmer123",
+    example: "550e8400-e29b-41d4-a716-446655440000",
   })
   @IsString()
   @IsNotEmpty({ message: "Farmer ID must be provided" })
@@ -14,7 +13,7 @@ export class CreatePropertyDto extends CommonDto {
 
   @ApiProperty({
     description: "Farm Name",
-    example: "John Doe",
+    example: "Fazenda São João",
   })
   @IsString()
   @IsNotEmpty({ message: "Farm name must be provided" })
@@ -30,7 +29,7 @@ export class CreatePropertyDto extends CommonDto {
 
   @ApiProperty({
     description: "State",
-    example: "Illinois",
+    example: "SP",
   })
   @IsString()
   @IsNotEmpty({ message: "State must be provided" })

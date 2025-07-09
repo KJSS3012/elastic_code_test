@@ -21,4 +21,7 @@ export class Farmer extends CommonEntity implements FarmerInterface {
 
   @Column({ type: 'citext', nullable: false })
   phone: string;
+
+  @Column({ type: 'citext', nullable: false, default: 'farmer' })
+  role: string;
 }

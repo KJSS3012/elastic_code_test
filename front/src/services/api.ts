@@ -8,6 +8,13 @@ interface ApiResponse<T> {
   lastPage?: number;
 }
 
+// Callback para lidar com logout quando há erro 401
+let onUnauthorizedCallback: (() => void) | null = null;
+
+export const setUnauthorizedCallback = (callback: () => void) => {
+  onUnauthorizedCallback = callback;
+};
+
 class ApiService {
   private getHeaders() {
     const token = localStorage.getItem('token');
@@ -27,20 +34,88 @@ class ApiService {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Request failed');
+      // Se for erro 401 (Unauthorized), limpar o token e lançar erro específico
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        // Chamar callback para lidar com logout imediatamente
+        if (onUnauthorizedCallback) {
+          onUnauthorizedCallback();
+        }
+        throw new Error('UNAUTHORIZED');
+      } try {
+        const errorData = await response.json();
+
+        // O backend NestJS pode retornar diferentes formatos de erro
+        let errorMessage = '';
+
+        if (errorData.message) {
+          if (Array.isArray(errorData.message)) {
+            errorMessage = errorData.message.join(', ');
+          } else {
+            errorMessage = errorData.message;
+          }
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else {
+          errorMessage = `Request failed with status ${response.status}`;
+        }
+
+        throw new Error(errorMessage);
+      } catch (parseError) {
+        // Verificar se o erro é de parsing JSON ou se é o erro que já lançamos
+        if (parseError instanceof Error && !parseError.message.includes('Request failed with status')) {
+          throw parseError; // Re-throw o erro que já processamos
+        }
+        // Se realmente falhou o parsing do JSON, usar erro genérico
+        throw new Error(`Request failed with status ${response.status}`);
+      }
     }
 
     return response.json();
   }
 
-  // Farmers
-  async getFarmers(page = 1, limit = 10) {
-    return this.request<any[]>(`/farmers?page=${page}&limit=${limit}`);
+  // Auth
+  async login(email: string, password: string) {
+    return this.request<{ token: string; user: any }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
   }
 
-  async getFarmer(id: string) {
-    return this.request<any>(`/farmers/${id}`);
+  async register(userData: any) {
+    return this.request<any>('/farmers', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async getCurrentUser() {
+    return this.request<any>('/auth/profile');
+  }
+
+  // Admin endpoints
+  async getAdminDashboardStats(filters?: { state?: string; city?: string; year?: number }) {
+    const queryParams = new URLSearchParams();
+    if (filters?.state) queryParams.append('state', filters.state);
+    if (filters?.city) queryParams.append('city', filters.city);
+    if (filters?.year) queryParams.append('year', filters.year.toString());
+
+    const query = queryParams.toString();
+    return this.request<any>(`/dashboard/admin-stats${query ? `?${query}` : ''}`);
+  }
+
+  async getAllFarmersWithProperties() {
+    return this.request<any>('/farmers/with-properties');
+  }
+
+  // Farmers management (Admin only)
+  async getAllFarmers(params?: { page?: number; limit?: number }) {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const query = queryParams.toString();
+    return this.request<any>(`/farmers${query ? `?${query}` : ''}`);
   }
 
   async createFarmer(data: any) {
@@ -58,18 +133,42 @@ class ApiService {
   }
 
   async deleteFarmer(id: string) {
-    return this.request<any>(`/farmers/${id}`, { method: 'DELETE' });
+    return this.request<any>(`/farmers/${id}`, {
+      method: 'DELETE',
+    });
   }
 
-  // Properties
-  async getProperties(page = 1, limit = 10) {
-    return this.request<any[]>(`/properties?page=${page}&limit=${limit}`);
+  // Farmer endpoints
+  async getFarmerDashboardStats(filters?: { state?: string; city?: string; year?: number }) {
+    const queryParams = new URLSearchParams();
+    if (filters?.state) queryParams.append('state', filters.state);
+    if (filters?.city) queryParams.append('city', filters.city);
+    if (filters?.year) queryParams.append('year', filters.year.toString());
+
+    const query = queryParams.toString();
+    return this.request<any>(`/dashboard/farmer-stats${query ? `?${query}` : ''}`);
   }
 
-  async getProperty(id: string) {
-    return this.request<any>(`/properties/${id}`);
+  async getMyProperties() {
+    return this.request<any[]>('/properties');
   }
 
+  async getMyProfile() {
+    return this.request<any>('/auth/profile');
+  }
+
+  async updateMyProfile(data: any) {
+    // Para atualizar o perfil, precisamos usar o endpoint de farmers
+    // mas primeiro precisamos obter o ID do usuário atual
+    const profileResponse = await this.getCurrentUser();
+    const profileId = (profileResponse as any).id;
+    return this.request<any>(`/farmers/${profileId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Properties (accessible by both farmers and admins)
   async createProperty(data: any) {
     return this.request<any>('/properties', {
       method: 'POST',
@@ -89,39 +188,57 @@ class ApiService {
   }
 
   // Harvests
-  async getHarvests(page = 1, limit = 10) {
-    return this.request<any[]>(`/harvests?page=${page}&limit=${limit}`);
-  }
-
-  async createHarvest(data: any) {
-    return this.request<any>('/harvests', {
+  async createHarvest(propertyId: string, data: any) {
+    return this.request<any>(`/properties/${propertyId}/harvests`, {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async updateHarvest(propertyId: string, harvestId: string, data: any) {
+    return this.request<any>(`/properties/${propertyId}/harvests/${harvestId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteHarvest(propertyId: string, harvestId: string) {
+    return this.request<any>(`/properties/${propertyId}/harvests/${harvestId}`, {
+      method: 'DELETE',
     });
   }
 
   // Crops
-  async getCrops(page = 1, limit = 10) {
-    return this.request<any[]>(`/crops?page=${page}&limit=${limit}`);
-  }
-
-  async createCrop(data: any) {
-    return this.request<any>('/crops', {
+  async createCrop(harvestId: string, data: any) {
+    return this.request<any>(`/harvests/${harvestId}/crops`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  // Dashboard
-  async getDashboardStats() {
-    return this.request<any>('/dashboard/stats');
+  async deleteCrop(harvestId: string, cropId: string) {
+    return this.request<any>(`/harvests/${harvestId}/crops/${cropId}`, {
+      method: 'DELETE',
+    });
   }
 
-  // Auth
-  async login(email: string, password: string) {
-    return this.request<{ token: string }>('/auth/login', {
+  // Harvest and Crop management
+  async addHarvestCrop(propertyId: string, data: any) {
+    return this.request<any>(`/properties/${propertyId}/harvest-crop`, {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removeHarvest(propertyId: string, harvestId: string) {
+    return this.request<any>(`/properties/${propertyId}/harvest/${harvestId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async removeCrop(propertyId: string, harvestId: string, cropId: string) {
+    return this.request<any>(`/properties/${propertyId}/harvest/${harvestId}/crop/${cropId}`, {
+      method: 'DELETE',
     });
   }
 }

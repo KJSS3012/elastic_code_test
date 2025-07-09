@@ -1,10 +1,11 @@
 import { CommonEntity } from "src/shared/common/entities/common.entity";
-import { Column, Entity } from "typeorm";
+import { Column, Entity, OneToMany } from "typeorm";
 import { PropertiesInterface } from "../interfaces/properties.interface";
+import { PropertyCropHarvest } from "../../property-crop-harvest/entities/property-crop-harvest.entity";
 
 @Entity()
 export class Property extends CommonEntity implements PropertiesInterface {
-  @Column({ type: 'citext', nullable: false })
+  @Column({ type: 'uuid', nullable: false })
   farmer_id: string;
 
   @Column({ type: 'citext', nullable: false })
@@ -24,4 +25,7 @@ export class Property extends CommonEntity implements PropertiesInterface {
 
   @Column({ type: 'float', nullable: false })
   vegetable_area_ha: number;
+
+  @OneToMany(() => PropertyCropHarvest, propertyCropHarvest => propertyCropHarvest.property)
+  propertyCropHarvests: PropertyCropHarvest[];
 }

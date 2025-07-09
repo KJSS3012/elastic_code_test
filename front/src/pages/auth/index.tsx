@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { type RootState } from '../../stores/store';
+import { loginUser, registerUser, clearError, setError } from '../../stores/auth/slice';
 import {
-  Container,
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Paper,
-  Tabs,
-  Tab
+  Container, Box, TextField, Button, Typography, Paper,
+  Tabs, Tab, Alert, CircularProgress
 } from '@mui/material';
 import { IMaskInput } from 'react-imask';
+import type { AppDispatch } from '../../stores/store';
+import { useNotification } from '../../contexts/NotificationContext';
 
 // --- Início dos Componentes de Máscara ---
 
@@ -69,188 +69,153 @@ const CnpjMaskCustom = React.forwardRef<HTMLElement, CustomProps>(
 // --- Fim dos Componentes de Máscara ---
 
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div role="tabpanel" hidden={value !== index} id={`auth-tabpanel-${index}`} aria-labelledby={`auth-tab-${index}`}>
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
-
 const AuthPage: React.FC = () => {
-  const [tabIndex, setTabIndex] = useState(0);
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const { loading, error, isAuthenticated } = useSelector((state: RootState) => state.authReducer);
+  const { showNotification } = useNotification();
 
-  // Estados para controlar os valores dos campos com máscara
+  const [tabIndex, setTabIndex] = useState(0);
   const [phoneValue, setPhoneValue] = useState('');
   const [cpfValue, setCpfValue] = useState('');
   const [cnpjValue, setCnpjValue] = useState('');
+  const [lastAction, setLastAction] = useState<string | null>(null);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabIndex(newValue);
-  };
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      if (lastAction === 'login') {
+        showNotification('Login realizado com sucesso!', 'success');
+      }
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate, lastAction, showNotification]);
 
-  const handleLoginSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  React.useEffect(() => {
+    // Mostrar notificação de sucesso do registro quando não está carregando e não há erro
+    if (lastAction === 'register' && !loading && !error) {
+      showNotification('Usuário criado com sucesso! Faça login para continuar.', 'success');
+      setTabIndex(0); // Mudar para aba de login
+      setLastAction(null);
+    }
+  }, [loading, error, lastAction, showNotification]);
+
+  React.useEffect(() => {
+    dispatch(clearError());
+  }, [tabIndex, dispatch]);
+
+  const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    console.log("Dados de Login:", {
-        email: data.get('email'),
-        password: data.get('password')
-    });
-    // TODO: Adicionar lógica de API para login
+
+    setLastAction('login');
+    dispatch(loginUser({
+      email: data.get('email') as string,
+      password: data.get('password') as string
+    }));
   };
 
-  const handleRegisterSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleRegisterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    console.log("Dados de Registro:", {
-      name: data.get('name'),
+
+    // Remover máscaras dos campos
+    const cleanPhone = phoneValue.replace(/\D/g, ''); // Remove tudo que não é dígito
+    const cleanCpf = cpfValue.replace(/\D/g, '');
+    const cleanCnpj = cnpjValue.replace(/\D/g, '');
+
+    // Validações básicas
+    if (!cleanCpf || cleanCpf.length !== 11) {
+      dispatch(setError('CPF é obrigatório e deve ter 11 dígitos'));
+      return;
+    }
+
+    if (!cleanPhone || cleanPhone.length < 10) {
+      dispatch(setError('Telefone é obrigatório e deve ter pelo menos 10 dígitos'));
+      return;
+    }
+
+    const registerData = {
+      producer_name: data.get('name'),
       email: data.get('email'),
-      phone: phoneValue,
-      cpf: cpfValue,
-      cnpj: cnpjValue,
+      phone: cleanPhone,
       password: data.get('password'),
-    });
-    // TODO: Adicionar lógica de API para registro
+      cpf: cleanCpf, // CPF é obrigatório
+    };
+
+    // Adicionar CNPJ se preenchido
+    if (cleanCnpj) {
+      (registerData as any).cnpj = cleanCnpj;
+    }
+
+    setLastAction('register');
+    dispatch(registerUser(registerData));
   };
 
   return (
-    <Container
-      component="main"
-      maxWidth="xs"
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh'
-      }}
-    >
+    <Container component="main" maxWidth="xs" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
       <Paper elevation={3} sx={{ width: '100%', overflow: 'hidden' }}>
+        {error && <Alert severity="error" sx={{ m: 2 }}>{error}</Alert>}
+
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabIndex} onChange={handleTabChange} variant="fullWidth">
-            <Tab label="Entrar" id="auth-tab-0" aria-controls="auth-tabpanel-0" />
-            <Tab label="Criar Conta" id="auth-tab-1" aria-controls="auth-tabpanel-1" />
+          <Tabs value={tabIndex} onChange={(_, newValue) => setTabIndex(newValue)} variant="fullWidth">
+            <Tab label="Entrar" />
+            <Tab label="Criar Conta" />
           </Tabs>
         </Box>
 
         {/* Painel de Login */}
-        <TabPanel value={tabIndex} index={0}>
-          <Typography component="h1" variant="h5" align="center" sx={{ mb: 2 }}>
-            Bem-vindo de volta!
-          </Typography>
-          <Box component="form" onSubmit={handleLoginSubmit} noValidate>
-            <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="login-email"
-                label="Endereço de Email"
-                name="email"
-                autoComplete="email"
-                autoFocus
-            />
-            <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Senha"
-                type="password"
-                id="login-password"
-                autoComplete="current-password"
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-            >
-              Entrar
-            </Button>
+        {tabIndex === 0 && (
+          <Box sx={{ p: 3 }}>
+            <Typography component="h1" variant="h5" align="center" sx={{ mb: 2 }}>
+              Bem-vindo de volta!
+            </Typography>
+            <Box component="form" onSubmit={handleLoginSubmit} noValidate>
+              <TextField margin="normal" required fullWidth name="email" label="Email" type="email" autoComplete="email" autoFocus />
+              <TextField margin="normal" required fullWidth name="password" label="Senha" type="password" autoComplete="current-password" />
+              <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} disabled={loading}>
+                {loading ? <CircularProgress size={24} /> : 'Entrar'}
+              </Button>
+            </Box>
           </Box>
-        </TabPanel>
+        )}
 
         {/* Painel de Cadastro */}
-        <TabPanel value={tabIndex} index={1}>
-           <Typography component="h1" variant="h5" align="center" sx={{ mb: 2 }}>
-            Crie sua conta
-          </Typography>
-          <Box component="form" onSubmit={handleRegisterSubmit} noValidate>
-            <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="register-name"
-                label="Nome Completo"
-                name="name"
-                autoComplete="name"
-            />
-            <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="register-email"
-                label="Endereço de Email"
-                name="email"
-                autoComplete="email"
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              value={phoneValue}
-              onChange={(e) => setPhoneValue(e.target.value)}
-              id="register-phone"
-              label="Telefone"
-              name="phone"
-              InputProps={{ inputComponent: PhoneMaskCustom as any }}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              value={cpfValue}
-              onChange={(e) => setCpfValue(e.target.value)}
-              id="register-cpf"
-              label="CPF"
-              name="cpf"
-              InputProps={{ inputComponent: CpfMaskCustom as any }}
-            />
-            <TextField
-              margin="normal"
-              fullWidth
-              value={cnpjValue}
-              onChange={(e) => setCnpjValue(e.target.value)}
-              id="register-cnpj"
-              label="CNPJ (Opcional)"
-              name="cnpj"
-              InputProps={{ inputComponent: CnpjMaskCustom as any }}
-            />
-            <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Crie uma Senha"
-                type="password"
-                id="register-password"
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-            >
-              Criar Conta
-            </Button>
+        {tabIndex === 1 && (
+          <Box sx={{ p: 3 }}>
+            <Typography component="h1" variant="h5" align="center" sx={{ mb: 2 }}>
+              Crie sua conta
+            </Typography>
+            <Box component="form" onSubmit={handleRegisterSubmit} noValidate>
+              <TextField margin="normal" required fullWidth name="name" label="Nome Completo" autoComplete="name" />
+              <TextField margin="normal" required fullWidth name="email" label="Email" type="email" autoComplete="email" />
+              <TextField
+                margin="normal" required fullWidth
+                value={phoneValue}
+                onChange={(e) => setPhoneValue(e.target.value)}
+                label="Telefone" name="phone"
+                InputProps={{ inputComponent: PhoneMaskCustom as any }}
+              />
+              <TextField
+                margin="normal" required fullWidth
+                value={cpfValue}
+                onChange={(e) => setCpfValue(e.target.value)}
+                label="CPF" name="cpf"
+                InputProps={{ inputComponent: CpfMaskCustom as any }}
+              />
+              <TextField
+                margin="normal" fullWidth
+                value={cnpjValue}
+                onChange={(e) => setCnpjValue(e.target.value)}
+                label="CNPJ (Opcional)" name="cnpj"
+                InputProps={{ inputComponent: CnpjMaskCustom as any }}
+              />
+              <TextField margin="normal" required fullWidth name="password" label="Senha" type="password" />
+              <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} disabled={loading}>
+                {loading ? <CircularProgress size={24} /> : 'Criar Conta'}
+              </Button>
+            </Box>
           </Box>
-        </TabPanel>
+        )}
       </Paper>
     </Container>
   );
