@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState, type AppDispatch } from '../../stores/store';
 import { fetchAllProducers, fetchAdminDashboardStats } from '../../stores/producer/slice';
@@ -18,17 +18,9 @@ import {
   TableRow,
   Chip,
   CircularProgress,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button
+  Alert
 } from '@mui/material';
 import {
-  PieChart,
-  Pie,
-  Cell,
   BarChart,
   Bar,
   XAxis,
@@ -36,9 +28,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line
+  ResponsiveContainer
 } from 'recharts';
 import {
   People,
@@ -47,31 +37,17 @@ import {
   Assessment
 } from '@mui/icons-material';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-
 const AdminPage: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
   const { producers, dashboardStats, loading, error } = useSelector((state: RootState) => state.producerReducer);
-  const [yearFilter, setYearFilter] = useState<number>(new Date().getFullYear());
-  const [stateFilter, setStateFilter] = useState<string>('');
 
   useEffect(() => {
     // Buscar todos os produtores
     dispatch(fetchAllProducers({ page: 1, limit: 100 }));
 
     // Buscar estatísticas do dashboard
-    dispatch(fetchAdminDashboardStats({
-      year: yearFilter,
-      ...(stateFilter && { state: stateFilter })
-    }));
-  }, [dispatch, yearFilter, stateFilter]);
-
-  const handleApplyFilters = () => {
-    dispatch(fetchAdminDashboardStats({
-      year: yearFilter,
-      ...(stateFilter && { state: stateFilter })
-    }));
-  };
+    dispatch(fetchAdminDashboardStats({}));
+  }, [dispatch]);
 
   // Preparar dados para os gráficos
   const getTotalProducers = () => producers.length;
@@ -79,22 +55,6 @@ const AdminPage: React.FC = () => {
   const getTotalArea = () => producers.reduce((total, producer) =>
     total + (producer.farms?.reduce((farmTotal, farm) => farmTotal + (farm.total_area_ha || 0), 0) || 0), 0
   );
-
-  // Dados para gráfico de pizza - Distribuição por estado
-  const getStateDistribution = () => {
-    const stateCount: { [key: string]: number } = {};
-    producers.forEach(producer => {
-      producer.farms?.forEach(farm => {
-        const state = farm.state || 'Não informado';
-        stateCount[state] = (stateCount[state] || 0) + 1;
-      });
-    });
-
-    return Object.entries(stateCount).map(([state, count]) => ({
-      name: state,
-      value: count
-    }));
-  };
 
   // Dados para gráfico de barras - Área por estado
   const getAreaByState = () => {
@@ -109,20 +69,6 @@ const AdminPage: React.FC = () => {
     return Object.entries(stateArea).map(([state, area]) => ({
       state,
       area: Math.round(area)
-    }));
-  };
-
-  // Dados para gráfico de linha - Propriedades por mês (simulado)
-  const getPropertiesTimeline = () => {
-    // Simular dados mensais para o ano atual
-    const months = [
-      'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
-    ];
-
-    return months.map((month, index) => ({
-      month,
-      properties: Math.floor(Math.random() * 10) + index * 2 + 5 // Dados simulados
     }));
   };
 
@@ -151,55 +97,6 @@ const AdminPage: React.FC = () => {
       <Typography variant="h4" gutterBottom>
         Área Administrativa
       </Typography>
-
-      {/* Filtros */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Filtros
-        </Typography>
-        <Grid container spacing={2} alignItems="center">
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <FormControl fullWidth>
-              <InputLabel>Ano</InputLabel>
-              <Select
-                value={yearFilter}
-                onChange={(e) => setYearFilter(Number(e.target.value))}
-                label="Ano"
-              >
-                {[2024, 2023, 2022, 2021, 2020].map(year => (
-                  <MenuItem key={year} value={year}>{year}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <FormControl fullWidth>
-              <InputLabel>Estado</InputLabel>
-              <Select
-                value={stateFilter}
-                onChange={(e) => setStateFilter(e.target.value)}
-                label="Estado"
-              >
-                <MenuItem value="">Todos</MenuItem>
-                <MenuItem value="SP">São Paulo</MenuItem>
-                <MenuItem value="MG">Minas Gerais</MenuItem>
-                <MenuItem value="PR">Paraná</MenuItem>
-                <MenuItem value="RS">Rio Grande do Sul</MenuItem>
-                <MenuItem value="GO">Goiás</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <Button
-              variant="contained"
-              onClick={handleApplyFilters}
-              fullWidth
-            >
-              Aplicar Filtros
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
 
       {/* Cards de Estatísticas */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -278,36 +175,8 @@ const AdminPage: React.FC = () => {
 
       {/* Gráficos */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Gráfico de Pizza - Distribuição por Estado */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Distribuição de Propriedades por Estado
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={getStateDistribution()}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {getStateDistribution().map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-
         {/* Gráfico de Barras - Área por Estado */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12 }}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
               Área Total por Estado (ha)
@@ -321,25 +190,6 @@ const AdminPage: React.FC = () => {
                 <Legend />
                 <Bar dataKey="area" fill="#8884d8" />
               </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-
-        {/* Gráfico de Linha - Timeline de Propriedades */}
-        <Grid size={{ xs: 12 }}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Evolução de Propriedades Cadastradas ({yearFilter})
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={getPropertiesTimeline()}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="properties" stroke="#8884d8" activeDot={{ r: 8 }} />
-              </LineChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>

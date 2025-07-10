@@ -14,15 +14,11 @@ import PropertyDetail from "../pages/property/detail";
 import AdminPage from "../pages/admin";
 
 
-const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) => {
-  const { isAuthenticated, user } = useSelector((state: RootState) => state.authReducer);
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useSelector((state: RootState) => state.authReducer);
 
   if (!isAuthenticated) {
     return <Navigate to="/auth" />;
-  }
-
-  if (adminOnly && user?.role !== 'admin') {
-    return <Navigate to="/dashboard" />;
   }
 
   return <>{children}</>;
@@ -51,8 +47,8 @@ const RouterContent = () => {
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route path="/" element={<Navigate to="/dashboard" />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/producers" element={<ProtectedRoute adminOnly><Producers /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
+        <Route path="/producers" element={<Producers />} />
+        <Route path="/admin" element={<AdminPage />} />
 
         {/* Rotas de Propriedades */}
         <Route path="/properties" element={<PropertyList />} />
