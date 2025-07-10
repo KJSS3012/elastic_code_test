@@ -35,7 +35,7 @@ export class AuthService {
         id: farmer.id,
         producer_name: farmer.producer_name,
         email: farmer.email,
-        role: 'farmer' // Por enquanto todos são farmers
+        role: farmer.role // Usar o role real do usuário
       }
     };
   }
@@ -54,7 +54,7 @@ export class AuthService {
       cpf: farmer.cpf,
       cnpj: farmer.cnpj,
       phone: farmer.phone,
-      role: 'farmer'
+      role: farmer.role // Usar o role real do usuário
     };
   }
 }

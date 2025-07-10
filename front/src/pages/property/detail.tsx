@@ -13,6 +13,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { fetchMyFarms, fetchAllProducers, createHarvest, removeHarvest, createCrop, removeCrop, type Harvest } from '../../stores/producer/slice';
 import HarvestModal, { type HarvestFormData } from '../../components/organisms/modal/harvestModal';
 import CropModal, { type CropFormData } from '../../components/organisms/modal/cropModal';
+import ConfirmationModal from '../../components/molecules/ConfirmationModal';
 
 
 const PropertyDetail: React.FC = () => {
@@ -24,6 +25,15 @@ const PropertyDetail: React.FC = () => {
   const [isHarvestModalOpen, setHarvestModalOpen] = useState(false);
   const [isCropModalOpen, setCropModalOpen] = useState(false);
   const [selectedHarvest, setSelectedHarvest] = useState<Harvest | null>(null);
+  const [deleteHarvestModal, setDeleteHarvestModal] = useState<{ open: boolean; harvestId: string | null }>({
+    open: false,
+    harvestId: null
+  });
+  const [deleteCropModal, setDeleteCropModal] = useState<{ open: boolean; harvestId: string | null; cropId: string | null }>({
+    open: false,
+    harvestId: null,
+    cropId: null
+  });
 
   // Carregar dados quando o componente é montado
   useEffect(() => {
@@ -110,20 +120,40 @@ const PropertyDetail: React.FC = () => {
     }
   };
 
-  const handleDeleteHarvest = async (harvestId: string) => {
-    try {
-      await dispatch(removeHarvest({ propertyId: farm.id, harvestId })).unwrap();
-    } catch (error) {
-      console.error('Erro ao deletar safra:', error);
+  const handleDeleteHarvestClick = (harvestId: string) => {
+    setDeleteHarvestModal({ open: true, harvestId });
+  };
+
+  const handleDeleteHarvestConfirm = async () => {
+    if (deleteHarvestModal.harvestId) {
+      try {
+        await dispatch(removeHarvest({ propertyId: farm.id, harvestId: deleteHarvestModal.harvestId })).unwrap();
+      } catch (error) {
+        console.error('Erro ao deletar safra:', error);
+      }
     }
   };
 
-  const handleDeleteCrop = async (harvestId: string, cropId: string) => {
-    try {
-      await dispatch(removeCrop({ propertyId: farm.id, harvestId, cropId })).unwrap();
-    } catch (error) {
-      console.error('Erro ao deletar cultura:', error);
+  const handleDeleteHarvestCancel = () => {
+    setDeleteHarvestModal({ open: false, harvestId: null });
+  };
+
+  const handleDeleteCropClick = (harvestId: string, cropId: string) => {
+    setDeleteCropModal({ open: true, harvestId, cropId });
+  };
+
+  const handleDeleteCropConfirm = async () => {
+    if (deleteCropModal.harvestId && deleteCropModal.cropId) {
+      try {
+        await dispatch(removeCrop({ propertyId: farm.id, harvestId: deleteCropModal.harvestId, cropId: deleteCropModal.cropId })).unwrap();
+      } catch (error) {
+        console.error('Erro ao deletar cultura:', error);
+      }
     }
+  };
+
+  const handleDeleteCropCancel = () => {
+    setDeleteCropModal({ open: false, harvestId: null, cropId: null });
   };
 
   return (
@@ -182,7 +212,7 @@ const PropertyDetail: React.FC = () => {
                 <Typography variant="h6">Culturas Plantadas</Typography>
                 <div>
                   <Button size="small" onClick={() => handleOpenCropModal(harvest)}>Adicionar Cultura</Button>
-                  <IconButton size="small" onClick={() => handleDeleteHarvest(harvest.id)}>
+                  <IconButton size="small" onClick={() => handleDeleteHarvestClick(harvest.id)}>
                     <DeleteIcon />
                   </IconButton>
                 </div>
@@ -201,7 +231,7 @@ const PropertyDetail: React.FC = () => {
                       <TableCell>{crop.name}</TableCell>
                       <TableCell>{crop.planted_area_ha}</TableCell>
                       <TableCell align="right">
-                        <IconButton size="small" onClick={() => handleDeleteCrop(harvest.id, crop.id)}>
+                        <IconButton size="small" onClick={() => handleDeleteCropClick(harvest.id, crop.id)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </TableCell>
@@ -213,6 +243,29 @@ const PropertyDetail: React.FC = () => {
           </Accordion>
         ))}
       </Box>
+
+      {/* Modais de Confirmação */}
+      <ConfirmationModal
+        open={deleteHarvestModal.open}
+        onClose={handleDeleteHarvestCancel}
+        onConfirm={handleDeleteHarvestConfirm}
+        title="Confirmar Exclusão de Safra"
+        message="Tem certeza que deseja excluir esta safra? Todas as culturas associadas também serão removidas. Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        confirmColor="error"
+      />
+
+      <ConfirmationModal
+        open={deleteCropModal.open}
+        onClose={handleDeleteCropCancel}
+        onConfirm={handleDeleteCropConfirm}
+        title="Confirmar Exclusão de Cultura"
+        message="Tem certeza que deseja excluir esta cultura? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        confirmColor="error"
+      />
     </Container>
   );
 };

@@ -16,7 +16,6 @@ export class PropertiesService {
     private readonly harvestsService: HarvestsService,
     private readonly cropsService: CropsService,
   ) { }
-
   async create(createPropertyDto: CreatePropertyDto, user: JwtPayloadInterface) {
     try {
       const {
@@ -41,10 +40,22 @@ export class PropertiesService {
       const property = this.propertiesRepository.createEntity(createPropertyDto);
       const savedProperty = await this.propertiesRepository.save(property);
 
-      return {
+      // Buscar a propriedade criada com todas as relações carregadas
+      const propertyWithRelations = await this.propertiesRepository.findOneByIdWithRelations(savedProperty.id);
+
+      if (!propertyWithRelations) {
+        throw new BadRequestException('Failed to retrieve created property');
+      }
+
+      // Transformar os dados para o formato esperado pelo frontend
+      const transformedProperty = this.transformPropertyData(propertyWithRelations);
+
+      const result = {
         message: 'Property created successfully',
-        data: savedProperty,
+        data: transformedProperty,
       };
+
+      return result;
     } catch (error) {
       throw new BadRequestException(
         'Error creating property: ' + error.message,
@@ -88,9 +99,29 @@ export class PropertiesService {
   }
 
   private transformPropertyData(property: any) {
+    if (!property) {
+      throw new BadRequestException('Property data is required');
+    }
+
     // Agrupar por harvest e organizar crops
     const harvestsMap = new Map();
 
+    // Primeiro, adicionar safras diretas (sem crops)
+    if (property.harvests) {
+      property.harvests.forEach((harvest: any) => {
+        harvestsMap.set(harvest.id, {
+          id: harvest.id,
+          name: harvest.harvest_name,
+          harvest_year: harvest.harvest_year,
+          start_date: harvest.start_date,
+          end_date: harvest.end_date,
+          total_area_ha: harvest.total_area_ha || 0,
+          crops: []
+        });
+      });
+    }
+
+    // Em seguida, adicionar crops das relações PropertyCropHarvest
     if (property.propertyCropHarvests) {
       property.propertyCropHarvests.forEach((pch: any) => {
         const harvestId = pch.harvest_id;
@@ -108,7 +139,6 @@ export class PropertiesService {
         }
 
         const harvest = harvestsMap.get(harvestId);
-        harvest.total_area_ha += pch.planted_area_ha;
         harvest.crops.push({
           id: pch.crop_id,
           name: pch.crop?.crop_name || 'Cultura desconhecida',
@@ -116,17 +146,23 @@ export class PropertiesService {
           planting_date: pch.planting_date,
           harvest_date: pch.harvest_date
         });
+
+        // Atualizar área total com base nas crops
+        const cropsArea = harvest.crops.reduce((sum: number, crop: any) => sum + crop.planted_area_ha, 0);
+        if (cropsArea > harvest.total_area_ha) {
+          harvest.total_area_ha = cropsArea;
+        }
       });
     }
 
     return {
       id: property.id,
-      farm_name: property.farm_name,
-      city: property.city,
-      state: property.state,
-      total_area_ha: property.total_area_ha,
-      arable_area_ha: property.arable_area_ha,
-      vegetable_area_ha: property.vegetable_area_ha,
+      farm_name: property.farm_name || '',
+      city: property.city || '',
+      state: property.state || '',
+      total_area_ha: property.total_area_ha || 0,
+      arable_area_ha: property.arable_area_ha || 0,
+      vegetable_area_ha: property.vegetable_area_ha || 0,
       farmer_id: property.farmer_id,
       harvests: Array.from(harvestsMap.values())
     };
@@ -145,9 +181,16 @@ export class PropertiesService {
 
     Object.assign(property, updatePropertyDto);
     await this.propertiesRepository.save(property);
+
+    // Buscar a propriedade atualizada com todas as relações carregadas
+    const propertyWithRelations = await this.propertiesRepository.findOneByIdWithRelations(id);
+
+    // Transformar os dados para o formato esperado pelo frontend
+    const transformedProperty = this.transformPropertyData(propertyWithRelations);
+
     return {
       message: 'Property updated successfully',
-      data: property,
+      data: transformedProperty,
     };
   }
 
@@ -204,15 +247,22 @@ export class PropertiesService {
       throw new ForbiddenException('You can only manage your own properties');
     }
 
-    // Criar a safra (harvest)
+    // Criar a safra (harvest) com property_id e total_area_ha
     const harvestData = {
+      property_id: propertyId,
       harvest_name: data.name,
       harvest_year: new Date().getFullYear(),
       start_date: new Date(),
-      end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 ano depois
+      end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 ano depois
+      total_area_ha: data.total_area_ha
     };
 
-    return this.harvestsService.create(harvestData);
+    const newHarvest = await this.harvestsService.create(harvestData);
+
+    return {
+      message: 'Harvest created successfully',
+      data: newHarvest.data
+    };
   }
 
   async createCrop(propertyId: string, harvestId: string, data: any, user: JwtPayloadInterface) {
@@ -259,8 +309,24 @@ export class PropertiesService {
       throw new ForbiddenException('You can only manage your own properties');
     }
 
-    // Remover todas as relações desta safra nesta propriedade
-    // Implementar lógica específica no PropertyCropHarvestService
+    // Verificar se a safra existe e pertence à propriedade
+    const harvest = await this.harvestsService.findOne(harvestId);
+    if (!harvest) {
+      throw new BadRequestException('Harvest not found');
+    }
+
+    // Verificar se a safra pertence à propriedade
+    if (harvest.property_id !== propertyId) {
+      throw new BadRequestException('Harvest does not belong to this property');
+    }
+
+    // Primeiro, remover todas as relações PropertyCropHarvest que envolvem esta safra
+    // Isso é necessário devido à restrição de chave estrangeira
+    await this.propertyCropHarvestService.removeByHarvestId(harvestId);
+
+    // Agora podemos remover a safra com segurança
+    await this.harvestsService.remove(harvestId);
+
     return { message: 'Harvest removed successfully' };
   }
 
@@ -275,8 +341,13 @@ export class PropertiesService {
       throw new ForbiddenException('You can only manage your own properties');
     }
 
-    // Remover a relação específica
-    // Implementar lógica específica no PropertyCropHarvestService
+    // Primeiro, remover todas as relações PropertyCropHarvest que envolvem esta cultura
+    // Isso é necessário devido à restrição de chave estrangeira
+    await this.propertyCropHarvestService.removeByCropId(cropId);
+
+    // Agora podemos remover a cultura com segurança
+    await this.cropsService.remove(cropId);
+
     return { message: 'Crop removed successfully' };
   }
 }

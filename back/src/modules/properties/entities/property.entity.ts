@@ -2,6 +2,7 @@ import { CommonEntity } from "src/shared/common/entities/common.entity";
 import { Column, Entity, OneToMany } from "typeorm";
 import { PropertiesInterface } from "../interfaces/properties.interface";
 import { PropertyCropHarvest } from "../../property-crop-harvest/entities/property-crop-harvest.entity";
+import { Harvest } from "../../harvests/entities/harvest.entity";
 
 @Entity()
 export class Property extends CommonEntity implements PropertiesInterface {
@@ -28,4 +29,7 @@ export class Property extends CommonEntity implements PropertiesInterface {
 
   @OneToMany(() => PropertyCropHarvest, propertyCropHarvest => propertyCropHarvest.property)
   propertyCropHarvests: PropertyCropHarvest[];
+
+  @OneToMany(() => Harvest, harvest => harvest.property)
+  harvests: Harvest[];
 }

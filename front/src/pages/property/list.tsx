@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../../stores/store';
 import { fetchMyFarms, fetchAllProducers, deleteFarm } from '../../stores/producer/slice';
@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Delete, Add } from '@mui/icons-material';
 import type { AppDispatch } from '../../stores/store';
 import { useNotification } from '../../contexts/NotificationContext';
+import ConfirmationModal from '../../components/molecules/ConfirmationModal';
 
 const PropertyList: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
@@ -14,7 +15,11 @@ const PropertyList: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.authReducer);
   const { myFarms, producers, loading } = useSelector((state: RootState) => state.producerReducer);
   const { showNotification } = useNotification();
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; farmId: string | null }>({
+    open: false,
+    farmId: null
+  });
 
   useEffect(() => {
     if (user?.role === 'farmer') {
@@ -24,10 +29,14 @@ const PropertyList: React.FC = () => {
     }
   }, [dispatch, user?.role]);
 
-  const handleDelete = async (farmId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir esta propriedade?')) {
+  const handleDeleteClick = (farmId: string) => {
+    setDeleteModal({ open: true, farmId });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteModal.farmId) {
       try {
-        await dispatch(deleteFarm(farmId)).unwrap();
+        await dispatch(deleteFarm(deleteModal.farmId)).unwrap();
         showNotification('Propriedade excluída com sucesso!', 'success');
       } catch (err: any) {
         const errorMessage = err.message || 'Erro ao excluir propriedade';
@@ -35,6 +44,10 @@ const PropertyList: React.FC = () => {
         showNotification(errorMessage, 'error');
       }
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModal({ open: false, farmId: null });
   };
 
   if (loading) {
@@ -62,13 +75,23 @@ const PropertyList: React.FC = () => {
   if (user?.role === 'farmer') {
     farms = myFarms.map(farm => ({
       ...farm,
-      producerName: user.producer_name
+      id: farm.id || '',
+      farm_name: farm.farm_name || 'Nome não informado',
+      city: farm.city || 'Cidade não informada',
+      state: farm.state || 'Estado não informado',
+      total_area_ha: farm.total_area_ha || 0,
+      producerName: user.producer_name || 'Produtor não informado'
     }));
   } else if (user?.role === 'admin') {
     farms = producers.flatMap(producer =>
       producer.farms?.map(farm => ({
         ...farm,
-        producerName: producer.producer_name
+        id: farm.id || '',
+        farm_name: farm.farm_name || 'Nome não informado',
+        city: farm.city || 'Cidade não informada',
+        state: farm.state || 'Estado não informado',
+        total_area_ha: farm.total_area_ha || 0,
+        producerName: producer.producer_name || 'Produtor não informado'
       })) || []
     );
   }
@@ -113,7 +136,7 @@ const PropertyList: React.FC = () => {
                       Produtor: {farm.producerName}
                     </Typography>
                     <Typography variant="body2" sx={{ mt: 1.5 }}>
-                      Área Total: {farm.total_area_ha.toLocaleString('pt-BR')} ha
+                      Área Total: {farm.total_area_ha ? farm.total_area_ha.toLocaleString('pt-BR') : '0'} ha
                     </Typography>
                   </CardContent>
                 </CardActionArea>
@@ -122,7 +145,7 @@ const PropertyList: React.FC = () => {
                     <IconButton
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(farm.id);
+                        handleDeleteClick(farm.id);
                       }}
                       color="error"
                       size="small"
@@ -147,6 +170,18 @@ const PropertyList: React.FC = () => {
           <Add />
         </Fab>
       )}
+
+      {/* Modal de confirmação de exclusão */}
+      <ConfirmationModal
+        open={deleteModal.open}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Confirmar Exclusão"
+        message="Tem certeza que deseja excluir esta propriedade? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        confirmColor="error"
+      />
     </Container>
   );
 };

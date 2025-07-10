@@ -3,10 +3,11 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
+  DialogTitle, DialogContent, DialogActions,
   TextField, Button, Grid
 } from '@mui/material';
 import { type Harvest } from '../../../stores/producer/slice';
+import AccessibleDialog from '../../molecules/AccessibleDialog';
 
 
 interface CropModalProps {
@@ -39,10 +40,17 @@ const CropModal: React.FC<CropModalProps> = ({ open, onClose, onSubmit, harvest 
   });
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Adicionar Cultura na Safra "{harvest.name}"</DialogTitle>
+    <AccessibleDialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      aria-labelledby="crop-modal-title"
+      aria-describedby="crop-modal-content"
+    >
+      <DialogTitle id="crop-modal-title">Adicionar Cultura na Safra "{harvest.name}"</DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent>
+        <DialogContent id="crop-modal-content">
           <Grid container spacing={2} sx={{ pt: 1 }}>
             <Grid size={{ xs: 12 }}>
               <Controller
@@ -69,7 +77,7 @@ const CropModal: React.FC<CropModalProps> = ({ open, onClose, onSubmit, harvest 
           <Button type="submit" variant="contained">Salvar Cultura</Button>
         </DialogActions>
       </form>
-    </Dialog>
+    </AccessibleDialog>
   );
 };
 

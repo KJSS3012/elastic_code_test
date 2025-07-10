@@ -4,7 +4,7 @@ import { type RootState, type AppDispatch } from '../../stores/store';
 import { fetchAllProducers } from '../../stores/producer/slice';
 import { apiService } from '../../services/api';
 import {
-  Container, Grid, Card, CardContent, Typography, Button, Dialog,
+  Container, Grid, Card, CardContent, Typography, Button,
   DialogTitle, DialogContent, DialogActions, TextField,
   IconButton, Box, CircularProgress, Alert
 } from '@mui/material';
@@ -14,6 +14,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { validateCPF, validateCNPJ } from '../../utils/validation';
 import { useNotification } from '../../contexts/NotificationContext';
+import ConfirmationModal from '../../components/molecules/ConfirmationModal';
+import AccessibleDialog from '../../components/molecules/AccessibleDialog';
 
 const producerSchema = z.object({
   producer_name: z.string().min(1, 'Nome é obrigatório'),
@@ -42,13 +44,16 @@ type ProducerFormData = z.infer<typeof producerSchema>;
 const Producers: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { producers, loading } = useSelector((state: RootState) => state.producerReducer);
-  const { user } = useSelector((state: RootState) => state.authReducer);
   const { showNotification } = useNotification();
 
   const [open, setOpen] = useState(false);
   const [editingProducer, setEditingProducer] = useState<any | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; producerId: string | null }>({
+    open: false,
+    producerId: null
+  });
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm<ProducerFormData>({
     resolver: zodResolver(producerSchema),
@@ -63,10 +68,9 @@ const Producers: React.FC = () => {
   });
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      dispatch(fetchAllProducers({ page: 1, limit: 100 }));
-    }
-  }, [dispatch, user?.role]);
+    // Qualquer usuário pode acessar para demonstração
+    dispatch(fetchAllProducers({ page: 1, limit: 100 }));
+  }, [dispatch]);
 
   const handleOpen = (producer?: any) => {
     setError(null);
@@ -128,10 +132,14 @@ const Producers: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este produtor?')) {
+  const handleDeleteClick = (producerId: string) => {
+    setDeleteModal({ open: true, producerId });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteModal.producerId) {
       try {
-        await apiService.deleteFarmer(id);
+        await apiService.deleteFarmer(deleteModal.producerId);
         showNotification('Produtor excluído com sucesso!', 'success');
         dispatch(fetchAllProducers({ page: 1, limit: 100 }));
       } catch (err: any) {
@@ -142,16 +150,9 @@ const Producers: React.FC = () => {
     }
   };
 
-  // Verificar se usuário é admin
-  if (user?.role !== 'admin') {
-    return (
-      <Container maxWidth="lg">
-        <Alert severity="error">
-          Acesso negado. Esta página é apenas para administradores.
-        </Alert>
-      </Container>
-    );
-  }
+  const handleDeleteCancel = () => {
+    setDeleteModal({ open: false, producerId: null });
+  };
 
   if (loading) {
     return (
@@ -211,7 +212,7 @@ const Producers: React.FC = () => {
                   </IconButton>
                   <IconButton
                     size="small"
-                    onClick={() => handleDelete(producer.id)}
+                    onClick={() => handleDeleteClick(producer.id)}
                     color="error"
                   >
                     <Delete />
@@ -223,7 +224,12 @@ const Producers: React.FC = () => {
         ))}
       </Grid>
 
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <AccessibleDialog
+        open={open}
+        onClose={handleClose}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
           {editingProducer ? 'Editar Produtor' : 'Novo Produtor'}
         </DialogTitle>
@@ -340,7 +346,19 @@ const Producers: React.FC = () => {
             </Button>
           </DialogActions>
         </form>
-      </Dialog>
+      </AccessibleDialog>
+
+      {/* Modal de confirmação de exclusão */}
+      <ConfirmationModal
+        open={deleteModal.open}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Confirmar Exclusão"
+        message="Tem certeza que deseja excluir este produtor? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        confirmColor="error"
+      />
     </Container>
   );
 };

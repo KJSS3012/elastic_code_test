@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState, type AppDispatch } from '../../stores/store';
 import { fetchAdminDashboardStats, fetchFarmerDashboardStats } from '../../stores/producer/slice';
 import { Grid, Card, CardContent, Typography, Box, CircularProgress } from '@mui/material';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts';
-import { DashboardFiltersComponent } from '../../components/molecules/DashboardFilters';
-import type { DashboardFilters } from '../../types/dashboard';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
@@ -13,19 +11,14 @@ const Dashboard: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.authReducer);
   const { dashboardStats, loading } = useSelector((state: RootState) => state.producerReducer);
-  const [filters, setFilters] = useState<DashboardFilters>({});
 
   useEffect(() => {
     if (user?.role === 'admin') {
-      dispatch(fetchAdminDashboardStats(filters));
+      dispatch(fetchAdminDashboardStats());
     } else {
-      dispatch(fetchFarmerDashboardStats(filters));
+      dispatch(fetchFarmerDashboardStats());
     }
-  }, [dispatch, user?.role, filters]);
-
-  const handleFiltersChange = (newFilters: DashboardFilters) => {
-    setFilters(newFilters);
-  };
+  }, [dispatch, user?.role]);
 
   if (loading || !dashboardStats) {
     return (
@@ -42,12 +35,6 @@ const Dashboard: React.FC = () => {
       <Typography variant="h4" component="h1" gutterBottom>
         {isAdmin ? 'Dashboard Administrativo' : `Bem-vindo, ${user?.producer_name || user?.email || 'Usuário'}`}
       </Typography>
-
-      {/* Filtros do Dashboard */}
-      <DashboardFiltersComponent
-        currentFilters={filters}
-        onFiltersChange={handleFiltersChange}
-      />
 
       {/* KPI Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

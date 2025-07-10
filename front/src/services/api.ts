@@ -209,8 +209,8 @@ class ApiService {
     });
   }
 
-  async deleteCrop(propertyId: string, harvestId: string, cropId: string) {
-    return this.request<any>(`/properties/${propertyId}/harvests/${harvestId}/crops/${cropId}`, {
+  async removeCrop(propertyId: string, harvestId: string, cropId: string) {
+    return this.request<any>(`/properties/${propertyId}/harvest/${harvestId}/crop/${cropId}`, {
       method: 'DELETE',
     });
   }

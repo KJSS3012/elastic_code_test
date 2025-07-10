@@ -105,18 +105,72 @@ export const fetchFarmerDashboardStats = createAsyncThunk(
 
 export const createFarm = createAsyncThunk(
   'producer/createFarm',
-  async (farmData: any) => {
-    const response = await apiService.createProperty(farmData);
-    // O backend retorna { message, data }, então precisamos retornar response.data.data
-    return response.data.data;
+  async (farmData: any, { rejectWithValue }) => {
+    try {
+      const response = await apiService.createProperty(farmData);
+
+      // O backend retorna { message, data } diretamente, não dentro de data
+      // response = { data: { message: string, data: PropertyData } }
+      // ou response = { message: string, data: PropertyData }
+      let createdFarm;
+
+      if (response.data && response.data.data) {
+        // Se a resposta está aninhada: response.data.data
+        createdFarm = response.data.data;
+      } else if (response.data) {
+        // Se a resposta está em: response.data
+        createdFarm = response.data;
+      } else {
+        // Se a resposta está diretamente na raiz
+        createdFarm = response;
+      }
+
+      if (!createdFarm || !createdFarm.id) {
+        throw new Error('Propriedade não foi retornada corretamente pelo servidor');
+      }
+
+      // Garantir que a propriedade tenha a estrutura correta
+      const farmWithDefaults = {
+        ...createdFarm,
+        id: createdFarm.id || '',
+        farm_name: createdFarm.farm_name || '',
+        city: createdFarm.city || '',
+        state: createdFarm.state || '',
+        total_area_ha: createdFarm.total_area_ha || 0,
+        arable_area_ha: createdFarm.arable_area_ha || 0,
+        vegetable_area_ha: createdFarm.vegetable_area_ha || 0,
+        harvests: createdFarm.harvests || []
+      };
+
+      return farmWithDefaults;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Erro desconhecido ao criar propriedade');
+    }
   }
 );
 
 export const updateFarm = createAsyncThunk(
   'producer/updateFarm',
-  async ({ id, data }: { id: string; data: any }) => {
-    const response = await apiService.updateProperty(id, data);
-    return response.data;
+  async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
+    try {
+      const response = await apiService.updateProperty(id, data);
+      const updatedFarm = response.data;
+
+      // Garantir que a propriedade tenha a estrutura correta
+      return {
+        ...updatedFarm,
+        id: updatedFarm.id || id,
+        farm_name: updatedFarm.farm_name || '',
+        city: updatedFarm.city || '',
+        state: updatedFarm.state || '',
+        total_area_ha: updatedFarm.total_area_ha || 0,
+        arable_area_ha: updatedFarm.arable_area_ha || 0,
+        vegetable_area_ha: updatedFarm.vegetable_area_ha || 0,
+        harvests: updatedFarm.harvests || []
+      };
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
@@ -176,7 +230,7 @@ export const removeCrop = createAsyncThunk(
   'producer/removeCrop',
   async ({ propertyId, harvestId, cropId }: { propertyId: string; harvestId: string; cropId: string }, { rejectWithValue, dispatch }) => {
     try {
-      await apiService.deleteCrop(propertyId, harvestId, cropId);
+      await apiService.removeCrop(propertyId, harvestId, cropId);
       // Recarregar as propriedades para obter dados atualizados
       dispatch(fetchMyFarms());
       return { propertyId, harvestId, cropId };
@@ -233,7 +287,7 @@ const producerSlice = createSlice({
         // Garantir que todas as propriedades tenham a estrutura correta
         state.myFarms = (action.payload ?? []).map(farm => ({
           ...farm,
-          harvests: farm.harvests || []
+          harvests: farm?.harvests || []
         }));
       })
       .addCase(fetchMyFarms.rejected, (state, action) => {
@@ -256,7 +310,7 @@ const producerSlice = createSlice({
         // Garantir que a propriedade tenha a estrutura correta
         const newFarm = {
           ...action.payload,
-          harvests: action.payload.harvests || []
+          harvests: action.payload?.harvests || []
         };
         state.myFarms.push(newFarm);
       })

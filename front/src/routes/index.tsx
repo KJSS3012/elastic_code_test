@@ -11,6 +11,7 @@ import Producers from "../pages/producer";
 import PropertyCreate from "../pages/property";
 import PropertyList from "../pages/property/list";
 import PropertyDetail from "../pages/property/detail";
+import AdminPage from "../pages/admin";
 
 
 const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) => {
@@ -51,6 +52,7 @@ const RouterContent = () => {
         <Route path="/" element={<Navigate to="/dashboard" />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/producers" element={<ProtectedRoute adminOnly><Producers /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
 
         {/* Rotas de Propriedades */}
         <Route path="/properties" element={<PropertyList />} />

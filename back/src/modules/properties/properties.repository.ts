@@ -34,7 +34,7 @@ export class PropertiesRepository {
   async findOneByIdWithRelations(id: string) {
     return this.propertiesRepository.findOne({
       where: { id },
-      relations: ['propertyCropHarvests', 'propertyCropHarvests.harvest', 'propertyCropHarvests.crop']
+      relations: ['harvests', 'propertyCropHarvests', 'propertyCropHarvests.harvest', 'propertyCropHarvests.crop']
     });
   }
 
@@ -70,7 +70,7 @@ export class PropertiesRepository {
   ): Promise<{ data: Property[]; total: number; page: number; limit: number }> {
     const [data, total] = await this.propertiesRepository.findAndCount({
       where: { farmer_id: farmerId },
-      relations: ['propertyCropHarvests', 'propertyCropHarvests.harvest', 'propertyCropHarvests.crop'],
+      relations: ['harvests', 'propertyCropHarvests', 'propertyCropHarvests.harvest', 'propertyCropHarvests.crop'],
       skip: (page - 1) * limit,
       take: limit,
     });

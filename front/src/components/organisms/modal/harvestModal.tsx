@@ -3,10 +3,11 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
+  DialogTitle, DialogContent, DialogActions,
   TextField, Button, Grid
 } from '@mui/material';
 import { type Farm } from '../../../stores/producer/slice';
+import AccessibleDialog from '../../molecules/AccessibleDialog';
 
 interface HarvestModalProps {
   open: boolean;
@@ -38,10 +39,17 @@ const HarvestModal: React.FC<HarvestModalProps> = ({ open, onClose, onSubmit, pr
 
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Adicionar Nova Safra</DialogTitle>
+    <AccessibleDialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      aria-labelledby="harvest-modal-title"
+      aria-describedby="harvest-modal-content"
+    >
+      <DialogTitle id="harvest-modal-title">Adicionar Nova Safra</DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent>
+        <DialogContent id="harvest-modal-content">
           <Grid container spacing={2} sx={{ pt: 1 }}>
             <Grid size={{ xs: 12 }}>
               <Controller
@@ -68,7 +76,7 @@ const HarvestModal: React.FC<HarvestModalProps> = ({ open, onClose, onSubmit, pr
           <Button type="submit" variant="contained">Salvar Safra</Button>
         </DialogActions>
       </form>
-    </Dialog>
+    </AccessibleDialog>
   );
 };
 
