@@ -207,6 +207,7 @@ const Producers: React.FC = () => {
                     size="small"
                     onClick={() => handleOpen(producer)}
                     color="primary"
+                    data-testid="edit-producer"
                   >
                     <Edit />
                   </IconButton>
@@ -214,6 +215,7 @@ const Producers: React.FC = () => {
                     size="small"
                     onClick={() => handleDeleteClick(producer.id)}
                     color="error"
+                    data-testid="delete-producer"
                   >
                     <Delete />
                   </IconButton>

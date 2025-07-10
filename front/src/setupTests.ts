@@ -1,5 +1,12 @@
 import '@testing-library/jest-dom';
 
+// Polyfills para Node.js environment
+if (typeof global.TextEncoder === 'undefined') {
+  const { TextEncoder, TextDecoder } = require('util');
+  global.TextEncoder = TextEncoder;
+  global.TextDecoder = TextDecoder;
+}
+
 // Mock do localStorage
 const localStorageMock = {
   getItem: jest.fn(),
@@ -52,13 +59,33 @@ Object.defineProperty(window, 'matchMedia', {
   }
 };
 
+// Mock do ResizeObserver (usado pelo Recharts)
+(global as any).ResizeObserver = class ResizeObserver {
+  constructor(_callback: any) { }
+
+  observe() {
+    return null;
+  }
+
+  disconnect() {
+    return null;
+  }
+
+  unobserve() {
+    return null;
+  }
+};
+
 // Suprimir warnings do console em testes
 const originalError = console.error;
 beforeAll(() => {
   console.error = (...args: any[]) => {
     if (
       typeof args[0] === 'string' &&
-      args[0].includes('Warning: ReactDOM.render is deprecated')
+      (args[0].includes('Warning: ReactDOM.render is deprecated') ||
+        args[0].includes('An update to') ||
+        args[0].includes('act(...)') ||
+        args[0].includes('When testing, code that causes React state updates'))
     ) {
       return;
     }

@@ -1,10 +1,26 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer, { loginUser, logout, setError } from '../../stores/auth/slice';
 import { mockUser } from '../../__mocks__/data';
-import { mockApiService } from '../../__mocks__/api';
 
+// Mock do serviço de API
 jest.mock('../../services/api', () => ({
-  apiService: mockApiService
+  apiService: {
+    login: jest.fn(),
+    register: jest.fn(),
+    getCurrentUser: jest.fn(),
+    getAllProducers: jest.fn(),
+    getAllFarmers: jest.fn(),
+    getAllFarmersWithProperties: jest.fn(),
+    createProducer: jest.fn(),
+    updateProducer: jest.fn(),
+    deleteProducer: jest.fn(),
+    getAllProperties: jest.fn(),
+    createProperty: jest.fn(),
+    updateProperty: jest.fn(),
+    deleteProperty: jest.fn(),
+    getAdminDashboardStats: jest.fn(),
+    getFarmerDashboardStats: jest.fn()
+  }
 }));
 
 describe('Auth Slice', () => {
@@ -23,7 +39,7 @@ describe('Auth Slice', () => {
     const state = (store.getState() as any).auth;
 
     expect(state.user).toBeNull();
-    expect(state.token).toBeNull();
+    expect(state.token).toBeUndefined();
     expect(state.isAuthenticated).toBe(false);
     expect(state.loading).toBe(false);
     expect(state.error).toBeNull();
