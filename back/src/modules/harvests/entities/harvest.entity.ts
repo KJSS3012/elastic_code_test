@@ -11,7 +11,7 @@ export class Harvest extends CommonEntity implements HarvestInterface {
   @Column({ type: 'int', nullable: false })
   harvest_year: number;
 
-  @Column({ type: 'citext', nullable: false })
+  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: false })
   harvest_name: string;
 
   @Column({ type: 'date', nullable: false })

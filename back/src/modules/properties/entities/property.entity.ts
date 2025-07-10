@@ -9,13 +9,13 @@ export class Property extends CommonEntity implements PropertiesInterface {
   @Column({ type: 'uuid', nullable: false })
   farmer_id: string;
 
-  @Column({ type: 'citext', nullable: false })
+  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: false })
   farm_name: string;
 
-  @Column({ type: 'citext', nullable: false })
+  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: false })
   city: string;
 
-  @Column({ type: 'citext', nullable: false })
+  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: false })
   state: string;
 
   @Column({ type: 'float', nullable: false })

@@ -1,1 +1,396 @@
-# elastic_code_test
+# Elastic Code - Sistema de Gestão Agrícola
+
+Sistema completo de gestão agrícola desenvolvido com NestJS (backend) e React (frontend), incluindo gerenciamento de produtores, propriedades, cultivos e colheitas.
+
+## 🏗️ Arquitetura
+
+### Backend (NestJS)
+
+- **Framework**: NestJS com TypeScript
+- **Banco de Dados**: PostgreSQL
+- **Autenticação**: JWT
+
+### Frontend (React)
+
+- **Framework**: React 18 com TypeScript
+- **Build Tool**: Vite
+- **UI**: Material-UI (MUI)
+- **Estado**: Redux Toolkit
+- **Roteamento**: React Router
+- **Servidor**: Nginx (em produção)
+
+### Serviços
+
+- **PostgreSQL**: Banco de dados principal
+
+## 🚀 Execução com Docker (Recomendado)
+
+### Pré-requisitos
+
+- Docker 20.10+
+- Docker Compose 2.0+
+
+### Execução Completa (Um comando apenas)
+
+```bash
+# Clonar o repositório
+git clone <url-do-repositorio>
+cd Elastic_Code
+
+# Subir toda a aplicação
+docker-compose up --build
+```
+
+Isso irá:
+
+1. Construir as imagens do backend e frontend
+2. Subir PostgreSQL
+3. Executar migrações do banco de dados
+4. Inicializar todos os serviços
+
+### Acessos
+
+- **Frontend**: http://localhost
+- **Backend API**: http://localhost:3000
+- **PostgreSQL**: localhost:5432
+
+### Comandos Úteis
+
+```bash
+# Parar todos os serviços
+docker-compose down
+
+# Ver logs em tempo real
+docker-compose logs -f
+
+# Parar e limpar tudo (incluindo volumes)
+docker-compose down -v
+
+# Reconstruir apenas um serviço
+docker-compose up --build backend
+
+# Executar comandos no backend
+docker-compose exec backend npm run migration:run
+
+# Executar testes
+docker-compose exec backend npm run test
+docker-compose exec frontend npm run test
+```
+
+## 🛠️ Desenvolvimento Local
+
+### Usando Docker (Recomendado para desenvolvimento)
+
+```bash
+# Subir apenas dependências (banco, etc)
+docker-compose -f docker-compose.dev.yml up
+
+# Em outro terminal, executar backend localmente
+cd back
+npm install
+npm run start:dev
+
+# Em outro terminal, executar frontend localmente
+cd front
+npm install
+npm run dev
+```
+
+### Execução Tradicional (sem Docker)
+
+#### Pré-requisitos
+
+- Node.js 18+
+- PostgreSQL 15+
+
+#### Backend
+
+```bash
+cd back
+
+# Instalar dependências
+npm install
+
+# Configurar variáveis de ambiente
+cp .env.example .env
+# Editar .env com suas configurações
+
+# Executar migrações
+npm run migration:run
+
+# Iniciar em modo desenvolvimento
+npm run start:dev
+```
+
+#### Frontend
+
+```bash
+cd front
+
+# Instalar dependências
+npm install
+
+# Iniciar servidor de desenvolvimento
+npm run dev
+```
+
+## 🧪 Testes
+
+### Com Docker
+
+```bash
+# Testes do backend
+docker-compose exec backend npm run test
+
+# Testes do frontend
+docker-compose exec frontend npm run test
+
+# Testes E2E
+docker-compose exec backend npm run test:e2e
+```
+
+### Local
+
+```bash
+# Backend
+cd back
+npm run test
+npm run test:cov
+npm run test:e2e
+
+# Frontend
+cd front
+npm run test
+npm run test:coverage
+```
+
+## 🧪 Estrutura de Testes
+
+O projeto implementa uma estrutura completa de testes com **cobertura mínima de 70%**:
+
+### Backend - Testes Implementados
+
+#### 📊 Cobertura e Qualidade
+
+- **Cobertura mínima**: 70% (branches, functions, lines, statements)
+- **Ferramentas**: Jest + ts-jest + @nestjs/testing
+- **Relatórios**: HTML, LCOV, JSON
+
+#### 🔬 Tipos de Testes
+
+**1. Testes Unitários**
+
+- Localização: `back/src/**/*.spec.ts`
+- Testam serviços isoladamente com mocks
+- Cobertura de lógica de negócio e funções puras
+
+**2. Testes de Integração**
+
+- Localização: `back/test/integration/*.spec.ts`
+- Testam interações reais com banco SQLite em memória
+- Validam fluxos completos Controller → Service → Repository
+
+**3. Testes E2E**
+
+- Localização: `back/test/app.e2e-spec.ts`
+- Simulam fluxos críticos (autenticação, CRUD)
+- Utilizando Pactum.js para APIs REST
+
+#### 🛠️ Comandos de Teste
+
+```bash
+# Entrar no container do backend
+docker-compose exec backend bash
+
+# Executar todos os testes
+npm run test:all
+
+# Testes unitários apenas
+npm run test:unit
+
+# Testes de integração
+npm run test:integration
+
+# Testes E2E
+npm run test:e2e
+
+# Gerar relatório de cobertura
+npm run test:cov
+
+# Watch mode para desenvolvimento
+npm run test:watch
+```
+
+#### 🎯 Cenários Testados
+
+**Casos de Sucesso:**
+
+- CRUD completo (Criar, Ler, Atualizar, Deletar)
+- Autenticação e autorização
+- Paginação e filtros
+- Validação de dados
+
+**Casos de Borda:**
+
+- Validação de campos obrigatórios
+- Tipos de dados incorretos
+- Limites de tamanho
+- Timeouts e erros de rede
+
+**Cenários de Falha:**
+
+- Banco de dados indisponível
+- Tokens inválidos
+- Dados corrompidos
+- Serviços externos offline
+
+#### 📈 Relatórios de Cobertura
+
+```bash
+# Gerar e visualizar relatório
+npm run test:cov
+open coverage/lcov-report/index.html
+```
+
+### Frontend - Testes (Em Desenvolvimento)
+
+O frontend possui estrutura básica configurada com:
+
+- Jest + React Testing Library
+- Testes de componentes
+- Testes de stores Redux
+- Testes de utilitários
+
+```bash
+# No diretório front/
+npm run test
+npm run test:coverage
+```
+
+### 📋 Fixtures e Mocks
+
+O projeto utiliza:
+
+- **@faker-js/faker**: Geração de dados falsos
+- **Fixtures organizadas**: Dados de teste reutilizáveis
+- **Mocks de repositórios**: Isolamento de dependências
+- **Cenários de erro**: Testes de robustez
+
+### 🏆 Qualidade Assegurada
+
+- ✅ **70%+ de cobertura** em todas as métricas
+- ✅ **Testes rápidos** (< 3 minutos total)
+- ✅ **CI/CD ready** com relatórios automatizados
+- ✅ **Documentação completa** (`back/TESTING.md`)
+- ✅ **Mocks e fixtures organizados**
+- ✅ **Cenários de erro e edge cases**
+
+## 📊 Monitoramento e Logs
+
+### Logs dos Serviços
+
+```bash
+# Todos os serviços
+docker-compose logs -f
+
+# Serviço específico
+docker-compose logs -f backend
+docker-compose logs -f frontend
+```
+
+### Health Checks
+
+Todos os serviços possuem health checks configurados:
+
+```bash
+# Verificar status
+docker-compose ps
+
+# Backend health
+curl http://localhost:3000/health
+
+# Frontend health
+curl http://localhost/health
+```
+
+## 🔒 Segurança
+
+### Variáveis de Ambiente
+
+As seguintes variáveis devem ser configuradas em produção:
+
+```env
+# Backend
+JWT_SECRET=your-super-secret-jwt-key
+DATABASE_URL=postgresql://user:pass@host:5432/db
+
+# Passwords
+POSTGRES_PASSWORD=secure-password
+```
+
+### Backup do Banco de Dados
+
+```bash
+# Criar backup
+docker-compose exec postgres pg_dump -U postgres elastic_code > backup.sql
+
+# Restaurar backup
+docker-compose exec -T postgres psql -U postgres elastic_code < backup.sql
+```
+
+## 📁 Estrutura do Projeto
+
+```
+Elastic_Code/
+├── back/                   # Backend NestJS
+│   ├── src/
+│   ├── test/
+│   ├── Dockerfile
+│   └── package.json
+├── front/                  # Frontend React
+│   ├── src/
+│   ├── public/
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   └── package.json
+├── init-scripts/           # Scripts de inicialização do banco
+├── docker-compose.yml      # Orquestração completa
+├── docker-compose.dev.yml  # Ambiente de desenvolvimento
+├── Makefile               # Comandos auxiliares
+└── README.md
+```
+
+## 🎯 Funcionalidades
+
+### Backend
+
+- ✅ Autenticação JWT
+- ✅ CRUD de Produtores
+- ✅ CRUD de Propriedades
+- ✅ CRUD de Cultivos
+- ✅ CRUD de Colheitas
+- ✅ Dashboard com estatísticas
+- ✅ Relatórios
+- ✅ API RESTful documentada
+
+### Frontend
+
+- ✅ Interface moderna com Material-UI
+- ✅ Autenticação e autorização
+- ✅ Dashboard interativo
+- ✅ Gestão completa de entidades
+- ✅ Formulários validados
+- ✅ Gráficos e visualizações
+- ✅ Responsivo para mobile
+
+## 🚀 Deploy em Produção
+
+### Usando Docker Swarm
+
+```bash
+# Inicializar swarm
+docker swarm init
+
+# Deploy
+docker stack deploy -c docker-compose.yml elastic-stack
+```
