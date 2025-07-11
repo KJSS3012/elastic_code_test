@@ -84,7 +84,7 @@ export class FarmersService {
       if (CreateFarmerDto.cpf) {
         CreateFarmerDto.cpf = CreateFarmerDto.cpf.replace(/\D/g, '').trim();
       }
-      
+
       // Normalizar CNPJ removendo caracteres especiais e espaços
       if (CreateFarmerDto.cnpj) {
         CreateFarmerDto.cnpj = CreateFarmerDto.cnpj.replace(/\D/g, '').trim();
@@ -96,18 +96,18 @@ export class FarmersService {
           correlationId,
           metadata: { cpf: CreateFarmerDto.cpf, cpf_type: typeof CreateFarmerDto.cpf }
         });
-        
+
         const existingFarmerByCpf = await this.farmersRepository.findOneByCpf(CreateFarmerDto.cpf);
-        
+
         this.logger.log('CPF check result', {
           correlationId,
-          metadata: { 
-            cpf: CreateFarmerDto.cpf, 
+          metadata: {
+            cpf: CreateFarmerDto.cpf,
             exists: !!existingFarmerByCpf,
-            existingId: existingFarmerByCpf?.id 
+            existingId: existingFarmerByCpf?.id
           }
         });
-        
+
         if (existingFarmerByCpf) {
           const duration = Date.now() - startTime;
           this.logger.warn('Farmer creation failed: CPF already exists', {

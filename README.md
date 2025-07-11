@@ -49,23 +49,72 @@ docker-compose up --build
 
 - **Frontend**: http://localhost
 - **Backend API**: http://localhost:3000
-- **PostgreSQL**: localhost:5432
+- **Documentação API (Swagger)**: http://localhost:3000/api
 
-### Comandos Úteis
+## 🌐 URLs do Sistema
+
+### Interface Web (Frontend)
+
+| URL                         | Descrição              |
+| --------------------------- | ---------------------- |
+| http://localhost            | Página inicial         |
+| http://localhost/auth/login | Login no sistema       |
+| http://localhost/dashboard  | Dashboard principal    |
+| http://localhost/producers  | Gestão de produtores   |
+| http://localhost/properties | Gestão de propriedades |
+
+### API Backend (Endpoints)
+
+| Endpoint                              | Método           | Descrição                 |
+| ------------------------------------- | ---------------- | ------------------------- |
+| http://localhost:3000/health          | GET              | Health check do sistema   |
+| http://localhost:3000/auth/login      | POST             | Autenticação de usuário   |
+| http://localhost:3000/auth/register   | POST             | Registro de novo usuário  |
+| http://localhost:3000/farmers         | GET/POST         | Listar/criar produtores   |
+| http://localhost:3000/farmers/{id}    | GET/PATCH/DELETE | Operações por ID          |
+| http://localhost:3000/properties      | GET/POST         | Listar/criar propriedades |
+| http://localhost:3000/properties/{id} | GET/PATCH/DELETE | Operações por ID          |
+| http://localhost:3000/dashboard       | GET              | Dados do dashboard        |
+
+### Exemplos de Uso via cURL
 
 ```bash
-# Parar todos os serviços
-docker-compose down
+# Health check
+curl http://localhost:3000/health
 
-# Ver logs em tempo real
-docker-compose logs -f
+# Login
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@test.com","password":"123456"}'
 
-# Reconstruir e reiniciar
-docker-compose up --build
+# Listar produtores (requer token)
+curl -X GET http://localhost:3000/farmers \
+  -H "Authorization: Bearer YOUR_TOKEN"
 
-# Limpar tudo (incluindo volumes)
-docker-compose down -v
+# Criar produtor
+curl -X POST http://localhost:3000/farmers \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"producer_name":"João Silva","email":"joao@email.com","cpf":"52998224725","phone":"11999999999","password":"123456"}'
 ```
+
+### Dados de Teste
+
+**CPFs Válidos para Teste:**
+
+- 52998224725
+- 17033259504
+- 46789135006
+- 04688910012
+- 89675432100
+
+**CNPJs Válidos para Teste:**
+
+- 11222333000181
+- 12345678000195
+- 98765432000123
+
+## 🚀 Execução Local
 
 #### Pré-requisitos
 
