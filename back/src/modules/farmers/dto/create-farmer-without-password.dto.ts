@@ -7,9 +7,8 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsCPF } from 'class-validator-cpf';
-import { CommonDto } from 'src/shared/common/dto/common.dto';
 
-export class CreateFarmerWithoutPasswordDto extends CommonDto {
+export class CreateFarmerWithoutPasswordDto {
   @ApiProperty({ description: "Farmer's CPF", example: '12345678900' })
   @IsString()
   @IsNotEmpty({ message: 'CPF must be provided' })

@@ -66,4 +66,11 @@ export class HarvestsService {
       message: "Harvest removed successfully",
     };
   }
+
+  async removeByPropertyId(propertyId: string) {
+    await this.harvestRepository.removeByPropertyId(propertyId);
+    return {
+      message: "Harvests removed successfully",
+    };
+  }
 }

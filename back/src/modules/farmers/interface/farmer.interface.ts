@@ -5,4 +5,5 @@ export interface FarmerInterface {
   email: string;
   password: string;
   phone: string;
+  role: string;
 }

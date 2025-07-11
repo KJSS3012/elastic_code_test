@@ -9,5 +9,6 @@ import { PropertyCropHarvest } from './entities/property-crop-harvest.entity';
   imports: [TypeOrmModule.forFeature([PropertyCropHarvest])],
   controllers: [PropertyCropHarvestController],
   providers: [PropertyCropHarvestService, PropertyCropHarvestRepository],
+  exports: [PropertyCropHarvestService, PropertyCropHarvestRepository],
 })
 export class PropertyCropHarvestModule { }

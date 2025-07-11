@@ -4,21 +4,24 @@ import { Column, Entity } from 'typeorm';
 
 @Entity()
 export class Farmer extends CommonEntity implements FarmerInterface {
-  @Column({ type: 'citext', nullable: false, unique: true })
+  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: true, unique: true })
   cpf: string;
 
-  @Column({ type: 'citext', nullable: true, unique: true })
+  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: true, unique: true })
   cnpj: string;
 
-  @Column({ type: 'citext', nullable: false })
+  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: false })
   producer_name: string;
 
-  @Column({ type: 'citext', nullable: false, unique: true })
+  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: false, unique: true })
   email: string;
 
   @Column({ type: 'text', nullable: false })
   password: string;
 
-  @Column({ type: 'citext', nullable: false })
+  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: false })
   phone: string;
+
+  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: false, default: 'farmer' })
+  role: string;
 }

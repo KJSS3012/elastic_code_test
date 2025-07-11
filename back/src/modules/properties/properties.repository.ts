@@ -31,6 +31,13 @@ export class PropertiesRepository {
     return this.propertiesRepository.findOne({ where: { id } });
   }
 
+  async findOneByIdWithRelations(id: string) {
+    return this.propertiesRepository.findOne({
+      where: { id },
+      relations: ['harvests', 'propertyCropHarvests', 'propertyCropHarvests.harvest', 'propertyCropHarvests.crop']
+    });
+  }
+
   async save(property: Property): Promise<Property> {
     return this.propertiesRepository.save(property);
   }
@@ -41,5 +48,32 @@ export class PropertiesRepository {
 
   async remove(id: string): Promise<void> {
     await this.propertiesRepository.delete(id);
+  }
+
+  async findByFarmerId(
+    farmerId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: Property[]; total: number; page: number; limit: number }> {
+    const [data, total] = await this.propertiesRepository.findAndCount({
+      where: { farmer_id: farmerId },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { data, total, page, limit };
+  }
+
+  async findByFarmerIdWithRelations(
+    farmerId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: Property[]; total: number; page: number; limit: number }> {
+    const [data, total] = await this.propertiesRepository.findAndCount({
+      where: { farmer_id: farmerId },
+      relations: ['harvests', 'propertyCropHarvests', 'propertyCropHarvests.harvest', 'propertyCropHarvests.crop'],
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { data, total, page, limit };
   }
 }

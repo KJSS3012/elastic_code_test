@@ -20,7 +20,7 @@ export class AuthController {
   @Get('profile')
   async getProfile(@Farmer('id') id: string) {
     try {
-      return { id: id };
+      return this.authService.getProfile(id);
     } catch (error) {
       throw new Error('Error retrieving profile: ' + error.message);
     }

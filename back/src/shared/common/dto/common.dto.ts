@@ -1,5 +1,5 @@
 import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
-import { IsEmpty, IsUUID } from 'class-validator';
+import { IsEmpty, IsOptional } from 'class-validator';
 
 export class CommonDto {
   @ApiProperty({
@@ -10,7 +10,8 @@ export class CommonDto {
   })
   @ApiHideProperty()
   @IsEmpty({ message: 'Id should not be set manually.' })
-  id: string;
+  @IsOptional()
+  id?: string;
 
   @ApiProperty({
     type: 'string',
@@ -18,7 +19,9 @@ export class CommonDto {
     title: 'Created At',
     description: 'The date and time at which the resource was created.',
   })
-  createdAt!: Date;
+  @ApiHideProperty()
+  @IsOptional()
+  createdAt?: Date;
 
   @ApiProperty({
     type: 'string',
@@ -26,5 +29,7 @@ export class CommonDto {
     title: 'Updated At',
     description: 'The date and time at which the resource was last updated.',
   })
-  updatedAt!: Date;
+  @ApiHideProperty()
+  @IsOptional()
+  updatedAt?: Date;
 }

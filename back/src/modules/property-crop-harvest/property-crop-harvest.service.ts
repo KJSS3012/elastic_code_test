@@ -59,4 +59,16 @@ export class PropertyCropHarvestService {
       message: 'Property deleted successfully',
     };
   }
+
+  async removeByCropId(cropId: string) {
+    return await this.propertyCropHarvestRepository.removeByCropId(cropId);
+  }
+
+  async removeByHarvestId(harvestId: string) {
+    return await this.propertyCropHarvestRepository.removeByHarvestId(harvestId);
+  }
+
+  async removeByPropertyId(propertyId: string) {
+    return await this.propertyCropHarvestRepository.removeByPropertyId(propertyId);
+  }
 }
