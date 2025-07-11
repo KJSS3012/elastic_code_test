@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PropertiesController } from './properties.controller';
 import { PropertiesService } from './properties.service';
+import { AuthGuard } from '../auth/auth.guard';
 
 describe('PropertiesController', () => {
   let controller: PropertiesController;
@@ -29,7 +30,10 @@ describe('PropertiesController', () => {
           useValue: mockPropertiesService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<PropertiesController>(PropertiesController);
   });

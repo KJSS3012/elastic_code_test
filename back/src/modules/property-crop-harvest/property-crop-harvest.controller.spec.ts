@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PropertyCropHarvestController } from './property-crop-harvest.controller';
 import { PropertyCropHarvestService } from './property-crop-harvest.service';
+import { AuthGuard } from '../auth/auth.guard';
 
 describe('PropertyCropHarvestController', () => {
   let controller: PropertyCropHarvestController;
@@ -22,7 +23,10 @@ describe('PropertyCropHarvestController', () => {
           useValue: mockPropertyCropHarvestService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<PropertyCropHarvestController>(PropertyCropHarvestController);
   });

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CropsController } from './crops.controller';
 import { CropsService } from './crops.service';
+import { AuthGuard } from '../auth/auth.guard';
 
 describe('CropsController', () => {
   let controller: CropsController;
@@ -23,7 +24,10 @@ describe('CropsController', () => {
           useValue: mockCropsService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<CropsController>(CropsController);
     service = module.get<CropsService>(CropsService);
