@@ -45,19 +45,28 @@ const AdminPage: React.FC = () => {
     // Buscar todos os produtores
     dispatch(fetchAllProducers({ page: 1, limit: 100 }));
 
-    // Buscar estatísticas do dashboard
+    // Buscar estatísticas administrativas globais
     dispatch(fetchAdminDashboardStats({}));
   }, [dispatch]);
 
-  // Preparar dados para os gráficos
-  const getTotalProducers = () => producers.length;
-  const getTotalProperties = () => producers.reduce((total, producer) => total + (producer.farms?.length || 0), 0);
-  const getTotalArea = () => producers.reduce((total, producer) =>
-    total + (producer.farms?.reduce((farmTotal, farm) => farmTotal + (farm.total_area_ha || 0), 0) || 0), 0
-  );
+  // Dados administrativos globais - usar os dados do backend
+  const getAdminStats = () => ({
+    totalProducers: dashboardStats?.totalFarmers || 0,
+    totalProperties: dashboardStats?.totalProperties || 0,
+    totalArea: dashboardStats?.totalHectares || 0,
+    activeHarvests: dashboardStats?.totalActiveHarvests || 0
+  });
 
-  // Dados para gráfico de barras - Área por estado
-  const getAreaByState = () => {
+  // Dados para gráfico de barras - Área por estado (usar dados do backend)
+  const getAreaByStateData = () => {
+    if (dashboardStats?.areaByState && dashboardStats.areaByState.length > 0) {
+      return dashboardStats.areaByState.map((item: any) => ({
+        state: item.state,
+        area: Math.round(item.totalArea || 0)
+      }));
+    }
+
+    // Fallback para dados calculados localmente se não houver dados do backend
     const stateArea: { [key: string]: number } = {};
     producers.forEach(producer => {
       producer.farms?.forEach(farm => {
@@ -71,6 +80,8 @@ const AdminPage: React.FC = () => {
       area: Math.round(area)
     }));
   };
+
+  const adminStats = getAdminStats();
 
   if (loading) {
     return (
@@ -110,7 +121,7 @@ const AdminPage: React.FC = () => {
                     Total de Produtores
                   </Typography>
                   <Typography variant="h4">
-                    {getTotalProducers()}
+                    {adminStats.totalProducers}
                   </Typography>
                 </Box>
               </Box>
@@ -128,7 +139,7 @@ const AdminPage: React.FC = () => {
                     Total de Propriedades
                   </Typography>
                   <Typography variant="h4">
-                    {getTotalProperties()}
+                    {adminStats.totalProperties}
                   </Typography>
                 </Box>
               </Box>
@@ -146,7 +157,7 @@ const AdminPage: React.FC = () => {
                     Área Total (ha)
                   </Typography>
                   <Typography variant="h4">
-                    {getTotalArea().toLocaleString('pt-BR')}
+                    {adminStats.totalArea.toLocaleString('pt-BR')}
                   </Typography>
                 </Box>
               </Box>
@@ -164,7 +175,7 @@ const AdminPage: React.FC = () => {
                     Safras Ativas
                   </Typography>
                   <Typography variant="h4">
-                    {dashboardStats?.activeHarvests || 0}
+                    {adminStats.activeHarvests}
                   </Typography>
                 </Box>
               </Box>
@@ -182,7 +193,7 @@ const AdminPage: React.FC = () => {
               Área Total por Estado (ha)
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={getAreaByState()}>
+              <BarChart data={getAreaByStateData()}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="state" />
                 <YAxis />

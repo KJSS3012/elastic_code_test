@@ -43,12 +43,10 @@ const MainLayout: React.FC = () => {
   };
 
   const navItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    // Produtores - qualquer usuário pode acessar para teste
-    { text: 'Produtores', icon: <PeopleIcon />, path: '/producers' },
-    // Área Admin - qualquer usuário pode acessar para teste
-    { text: 'Área Admin', icon: <AdminPanelSettingsIcon />, path: '/admin' },
-    { text: 'Propriedades', icon: <BusinessCenterIcon />, path: '/properties' },
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' }, // Dashboard pessoal do usuário
+    { text: 'Produtores', icon: <PeopleIcon />, path: '/producers' }, // Lista de produtores
+    { text: 'Área Admin', icon: <AdminPanelSettingsIcon />, path: '/admin' }, // Dados administrativos globais
+    { text: 'Propriedades', icon: <BusinessCenterIcon />, path: '/properties' }, // Lista de propriedades
   ];
 
   const secondaryNavItems = [

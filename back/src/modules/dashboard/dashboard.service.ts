@@ -12,7 +12,9 @@ export class DashboardService {
         totalFarmers,
         totalProperties,
         totalHectares,
+        totalActiveHarvests,
         propertiesByState,
+        areaByState,
         topCities,
         cropDistribution,
         landUseDistribution
@@ -20,7 +22,9 @@ export class DashboardService {
         this.dashboardRepository.getTotalFarmers(filters),
         this.dashboardRepository.getTotalProperties(filters),
         this.dashboardRepository.getTotalHectares(filters),
+        this.dashboardRepository.getTotalActiveHarvests(filters),
         this.dashboardRepository.getFarmersByState(filters),
+        this.dashboardRepository.getAreaByState(filters),
         this.dashboardRepository.getFarmersByCities(filters),
         this.dashboardRepository.getCropDistribution(filters),
         this.dashboardRepository.getLandUseDistribution(filters)
@@ -34,10 +38,15 @@ export class DashboardService {
           totalFarmers,
           totalProperties,
           totalHectares: Math.round(totalHectares),
+          totalActiveHarvests,
           totalCrops: Math.round(totalCrops),
           propertiesByState: propertiesByState.map(item => ({
             state: item.state,
             count: parseInt(item.count)
+          })),
+          areaByState: areaByState.map(item => ({
+            state: item.state,
+            totalArea: Math.round(parseFloat(item.totalArea || 0))
           })),
           topCities: topCities.map(item => ({
             city: item.city,

@@ -53,4 +53,8 @@ export class PropertyCropHarvestRepository {
   async removeByHarvestId(harvestId: string): Promise<void> {
     await this.propertyCropHarvestRepository.delete({ harvest_id: harvestId });
   }
+
+  async removeByPropertyId(propertyId: string): Promise<void> {
+    await this.propertyCropHarvestRepository.delete({ property_id: propertyId });
+  }
 }

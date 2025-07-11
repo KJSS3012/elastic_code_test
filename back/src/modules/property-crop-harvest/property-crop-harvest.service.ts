@@ -67,4 +67,8 @@ export class PropertyCropHarvestService {
   async removeByHarvestId(harvestId: string) {
     return await this.propertyCropHarvestRepository.removeByHarvestId(harvestId);
   }
+
+  async removeByPropertyId(propertyId: string) {
+    return await this.propertyCropHarvestRepository.removeByPropertyId(propertyId);
+  }
 }

@@ -4,7 +4,7 @@ import { Column, Entity } from 'typeorm';
 
 @Entity()
 export class Farmer extends CommonEntity implements FarmerInterface {
-  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: false, unique: true })
+  @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: true, unique: true })
   cpf: string;
 
   @Column({ type: process.env.NODE_ENV === 'test' ? 'text' : 'citext', nullable: true, unique: true })

@@ -6,6 +6,8 @@ import { JwtPayloadInterface } from '../auth/interface/jwt.payload.interface';
 import { PropertyCropHarvestService } from '../property-crop-harvest/property-crop-harvest.service';
 import { HarvestsService } from '../harvests/harvests.service';
 import { CropsService } from '../crops/crops.service';
+import { LoggerService } from '../../shared/logging/logger.service';
+import { LogOperation } from '../../shared/logging/log-operation.decorator';
 
 @Injectable()
 export class PropertiesService {
@@ -15,9 +17,34 @@ export class PropertiesService {
     private readonly propertyCropHarvestService: PropertyCropHarvestService,
     private readonly harvestsService: HarvestsService,
     private readonly cropsService: CropsService,
+    private readonly logger: LoggerService,
   ) { }
+
+  @LogOperation({
+    operation: 'create_property',
+    module: 'properties',
+    logInput: true,
+    logOutput: true
+  })
   async create(createPropertyDto: CreatePropertyDto, user: JwtPayloadInterface) {
+    const correlationId = this.logger.generateCorrelationId();
+    const startTime = Date.now();
+
     try {
+      this.logger.log('Creating property', {
+        correlationId,
+        operation: 'create_property',
+        module: 'properties',
+        userId: user.id,
+        userRole: user.role,
+        metadata: {
+          total_area_ha: createPropertyDto.total_area_ha,
+          arable_area_ha: createPropertyDto.arable_area_ha,
+          vegetable_area_ha: createPropertyDto.vegetable_area_ha,
+          farmer_id: createPropertyDto.farmer_id
+        }
+      });
+
       const {
         total_area_ha,
         arable_area_ha,
@@ -27,6 +54,21 @@ export class PropertiesService {
       const sumAreas = arable_area_ha + vegetable_area_ha;
 
       if (sumAreas > total_area_ha) {
+        const duration = Date.now() - startTime;
+        this.logger.warn('Property creation failed: area validation error', {
+          correlationId,
+          operation: 'create_property',
+          module: 'properties',
+          duration,
+          userId: user.id,
+          metadata: {
+            total_area_ha,
+            arable_area_ha,
+            vegetable_area_ha,
+            sum_areas: sumAreas,
+            error: 'sum_areas_exceeds_total'
+          }
+        });
         throw new BadRequestException(
           `The sum of arable area (${arable_area_ha} ha) and vegetable area (${vegetable_area_ha} ha) cannot be greater than the total area (${total_area_ha} ha).`,
         );
@@ -40,15 +82,48 @@ export class PropertiesService {
       const property = this.propertiesRepository.createEntity(createPropertyDto);
       const savedProperty = await this.propertiesRepository.save(property);
 
+      this.logger.logDatabaseOperation('create', 'properties', Date.now() - startTime, {
+        correlationId,
+        userId: user.id,
+        operation: 'create_property'
+      });
+
       // Buscar a propriedade criada com todas as relações carregadas
       const propertyWithRelations = await this.propertiesRepository.findOneByIdWithRelations(savedProperty.id);
 
       if (!propertyWithRelations) {
+        const duration = Date.now() - startTime;
+        this.logger.error('Failed to retrieve created property', undefined, {
+          correlationId,
+          operation: 'create_property',
+          module: 'properties',
+          duration,
+          userId: user.id,
+          error: 'property_not_found_after_creation',
+          metadata: { propertyId: savedProperty.id }
+        });
         throw new BadRequestException('Failed to retrieve created property');
       }
 
       // Transformar os dados para o formato esperado pelo frontend
       const transformedProperty = this.transformPropertyData(propertyWithRelations);
+
+      const duration = Date.now() - startTime;
+      this.logger.logBusinessOperation('create_property', true, {
+        correlationId,
+        duration,
+        module: 'properties',
+        userId: user.id,
+        metadata: {
+          propertyId: savedProperty.id,
+          farmer_id: createPropertyDto.farmer_id,
+          areas: {
+            total: createPropertyDto.total_area_ha,
+            arable: createPropertyDto.arable_area_ha,
+            vegetable: createPropertyDto.vegetable_area_ha
+          }
+        }
+      });
 
       const result = {
         message: 'Property created successfully',
@@ -57,32 +132,94 @@ export class PropertiesService {
 
       return result;
     } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.logBusinessOperation('create_property', false, {
+        correlationId,
+        duration,
+        module: 'properties',
+        userId: user.id,
+        error: error.message,
+        metadata: { farmer_id: createPropertyDto.farmer_id }
+      });
       throw new BadRequestException(
         'Error creating property: ' + error.message,
       );
     }
   }
+
+  @LogOperation({
+    operation: 'list_properties',
+    module: 'properties',
+    logInput: true,
+    logOutput: false
+  })
   async findAll(user: JwtPayloadInterface, page = 1, limit = 10) {
-    let result;
+    const correlationId = this.logger.generateCorrelationId();
+    const startTime = Date.now();
 
-    if (user.role === 'farmer') {
-      // Farmers só veem suas próprias propriedades com relações
-      result = await this.propertiesRepository.findByFarmerIdWithRelations(user.id, page, limit);
-    } else {
-      // Admins veem todas as propriedades
-      result = await this.propertiesRepository.findAll(page, limit);
+    try {
+      this.logger.log('Listing properties', {
+        correlationId,
+        operation: 'list_properties',
+        module: 'properties',
+        userId: user.id,
+        userRole: user.role,
+        metadata: { page, limit }
+      });
+
+      let result;
+
+      if (user.role === 'farmer') {
+        // Farmers só veem suas próprias propriedades com relações
+        result = await this.propertiesRepository.findByFarmerIdWithRelations(user.id, page, limit);
+      } else {
+        // Admins veem todas as propriedades
+        result = await this.propertiesRepository.findAll(page, limit);
+      }
+
+      // Transformar dados para o formato esperado pelo frontend
+      const transformedData = result.data.map(property => this.transformPropertyData(property));
+
+      const duration = Date.now() - startTime;
+      this.logger.logBusinessOperation('list_properties', true, {
+        correlationId,
+        duration,
+        module: 'properties',
+        userId: user.id,
+        metadata: {
+          resultCount: transformedData.length,
+          total: result.total,
+          page,
+          limit
+        }
+      });
+
+      return {
+        data: transformedData,
+        total: result.total,
+        page: result.page,
+        lastPage: Math.ceil(result.total / result.limit),
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.logBusinessOperation('list_properties', false, {
+        correlationId,
+        duration,
+        module: 'properties',
+        userId: user.id,
+        error: error.message,
+        metadata: { page, limit }
+      });
+      throw error;
     }
-
-    // Transformar dados para o formato esperado pelo frontend
-    const transformedData = result.data.map(property => this.transformPropertyData(property));
-
-    return {
-      data: transformedData,
-      total: result.total,
-      page: result.page,
-      lastPage: Math.ceil(result.total / result.limit),
-    };
   }
+
+  @LogOperation({
+    operation: 'get_property',
+    module: 'properties',
+    logInput: true,
+    logOutput: true
+  })
 
   async findOne(id: string, user: JwtPayloadInterface) {
     const property = await this.propertiesRepository.findOneByIdWithRelations(id);
@@ -204,6 +341,9 @@ export class PropertiesService {
     if (user.role === 'farmer' && property.farmer_id !== user.id) {
       throw new ForbiddenException('You can only delete your own properties');
     }
+
+    // Remover todas as relações PropertyCropHarvest antes de deletar a propriedade
+    await this.propertyCropHarvestService.removeByPropertyId(id);
 
     await this.propertiesRepository.remove(id);
     return {

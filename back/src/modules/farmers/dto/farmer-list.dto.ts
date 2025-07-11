@@ -11,4 +11,13 @@ export class FarmerListDto extends CommonEntityDto {
 
   @Expose()
   phone!: string;
+
+  @Expose()
+  cpf!: string;
+
+  @Expose()
+  cnpj!: string;
+
+  @Expose()
+  role!: string;
 }

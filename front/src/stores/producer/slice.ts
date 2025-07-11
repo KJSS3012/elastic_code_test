@@ -176,9 +176,13 @@ export const updateFarm = createAsyncThunk(
 
 export const deleteFarm = createAsyncThunk(
   'producer/deleteFarm',
-  async (id: string) => {
-    await apiService.deleteProperty(id);
-    return id;
+  async (id: string, { rejectWithValue }) => {
+    try {
+      await apiService.deleteProperty(id);
+      return id;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Erro ao deletar propriedade');
+    }
   }
 );
 

@@ -54,7 +54,8 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.city = :city', { city: filters.city });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder
         .leftJoin(PropertyCropHarvest, 'pch', 'pch.property_id = property.id')
         .leftJoin(Harvest, 'harvest', 'harvest.id = pch.harvest_id')
@@ -79,7 +80,8 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.state = :state', { state: filters.state });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder
         .leftJoin(PropertyCropHarvest, 'pch', 'pch.property_id = property.id')
         .leftJoin(Harvest, 'harvest', 'harvest.id = pch.harvest_id')
@@ -104,7 +106,8 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.city = :city', { city: filters.city });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder
         .leftJoin(PropertyCropHarvest, 'pch', 'pch.property_id = property.id')
         .leftJoin(Harvest, 'harvest', 'harvest.id = pch.harvest_id')
@@ -127,7 +130,8 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.city = :city', { city: filters.city });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder
         .leftJoin(PropertyCropHarvest, 'pch', 'pch.property_id = property.id')
         .leftJoin(Harvest, 'harvest', 'harvest.id = pch.harvest_id')
@@ -156,7 +160,8 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.city = :city', { city: filters.city });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder.andWhere('harvest.harvest_year = :year', { year: filters.year });
     }
 
@@ -180,7 +185,8 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.city = :city', { city: filters.city });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder
         .leftJoin(PropertyCropHarvest, 'pch', 'pch.property_id = property.id')
         .leftJoin(Harvest, 'harvest', 'harvest.id = pch.harvest_id')
@@ -198,7 +204,7 @@ export class DashboardRepository {
     const queryBuilder = this.propertyRepository
       .createQueryBuilder('property')
       .select('property.farm_name', 'name')
-      .addSelect('property.total_area_ha', 'totalarea')
+      .addSelect('property.total_area_ha', 'totalArea')
       .where('property.farmer_id = :farmerId', { farmerId });
 
     if (filters?.state) {
@@ -209,7 +215,8 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.city = :city', { city: filters.city });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder
         .leftJoin(PropertyCropHarvest, 'pch', 'pch.property_id = property.id')
         .leftJoin(Harvest, 'harvest', 'harvest.id = pch.harvest_id')
@@ -240,7 +247,8 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.city = :city', { city: filters.city });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder.andWhere('harvest.harvest_year = :year', { year: filters.year });
     }
 
@@ -265,7 +273,8 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.city = :city', { city: filters.city });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder
         .leftJoin(PropertyCropHarvest, 'pch', 'pch.property_id = property.id')
         .leftJoin(Harvest, 'harvest', 'harvest.id = pch.harvest_id')
@@ -293,7 +302,8 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.city = :city', { city: filters.city });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder
         .leftJoin(PropertyCropHarvest, 'pch', 'pch.property_id = property.id')
         .leftJoin(Harvest, 'harvest', 'harvest.id = pch.harvest_id')
@@ -319,7 +329,8 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.city = :city', { city: filters.city });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder.andWhere('harvest.harvest_year = :year', { year: filters.year });
     }
 
@@ -343,11 +354,62 @@ export class DashboardRepository {
       queryBuilder.andWhere('property.city = :city', { city: filters.city });
     }
 
-    if (filters?.year) {
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
       queryBuilder.andWhere('harvest.harvest_year = :year', { year: filters.year });
     }
 
     const result = await queryBuilder.getRawOne();
     return parseInt(result?.count) || 0;
+  }
+
+  async getAreaByState(filters?: DashboardQueryDto): Promise<any[]> {
+    const queryBuilder = this.propertyRepository
+      .createQueryBuilder('property')
+      .select('property.state', 'state')
+      .addSelect('SUM(property.total_area_ha)', 'totalArea')
+      .where('property.state IS NOT NULL');
+
+    if (filters?.city) {
+      queryBuilder.andWhere('property.city = :city', { city: filters.city });
+    }
+
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
+      queryBuilder
+        .leftJoin(PropertyCropHarvest, 'pch', 'pch.property_id = property.id')
+        .leftJoin(Harvest, 'harvest', 'harvest.id = pch.harvest_id')
+        .andWhere('harvest.harvest_year = :year', { year: filters.year });
+    }
+
+    return queryBuilder
+      .groupBy('property.state')
+      .orderBy('SUM(property.total_area_ha)', 'DESC')
+      .getRawMany();
+  }
+
+  async getTotalActiveHarvests(filters?: DashboardQueryDto): Promise<number> {
+    const queryBuilder = this.harvestRepository.createQueryBuilder('harvest');
+
+    if (filters?.state || filters?.city) {
+      queryBuilder
+        .leftJoin(PropertyCropHarvest, 'pch', 'pch.harvest_id = harvest.id')
+        .leftJoin(Property, 'property', 'property.id = pch.property_id');
+
+      if (filters.state) {
+        queryBuilder.andWhere('property.state = :state', { state: filters.state });
+      }
+
+      if (filters.city) {
+        queryBuilder.andWhere('property.city = :city', { city: filters.city });
+      }
+    }
+
+    // Só aplicar filtro de ano se especificamente fornecido
+    if (filters?.year && filters.year > 0) {
+      queryBuilder.andWhere('harvest.harvest_year = :year', { year: filters.year });
+    }
+
+    return queryBuilder.getCount();
   }
 }

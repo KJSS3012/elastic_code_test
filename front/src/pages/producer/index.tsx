@@ -21,12 +21,16 @@ const producerSchema = z.object({
   producer_name: z.string().min(1, 'Nome é obrigatório'),
   email: z.string().email('Email inválido'),
   phone: z.string().min(1, 'Telefone é obrigatório'),
-  cpf: z.string().min(1, 'CPF é obrigatório'),
+  cpf: z.string().optional(),
   cnpj: z.string().optional(),
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').optional(),
 }).refine(data => {
+  // Pelo menos um CPF ou CNPJ deve ser fornecido
+  if (!data.cpf && !data.cnpj) {
+    return false;
+  }
   // Validar CPF se fornecido
-  if (data.cpf && !validateCPF(data.cpf)) {
+  if (data.cpf && data.cpf.length > 0 && !validateCPF(data.cpf)) {
     return false;
   }
   // Validar CNPJ se fornecido
@@ -35,7 +39,7 @@ const producerSchema = z.object({
   }
   return true;
 }, {
-  message: 'CPF ou CNPJ inválido',
+  message: 'Forneça um CPF ou CNPJ válido',
   path: ['cpf']
 });
 
@@ -197,7 +201,9 @@ const Producers: React.FC = () => {
                   {producer.email}
                 </Typography>
                 <Typography color="text.secondary" variant="body2">
-                  {producer.cpf ? `CPF: ${producer.cpf}` : `CNPJ: ${producer.cnpj}`}
+                  {producer.cpf ? `CPF: ${producer.cpf}` :
+                    producer.cnpj ? `CNPJ: ${producer.cnpj}` :
+                      'CPF/CNPJ: Não informado'}
                 </Typography>
                 <Typography color="text.secondary" variant="body2">
                   {producer.phone}
