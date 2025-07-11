@@ -42,4 +42,8 @@ export class HavestRepository {
   async remove(id: string): Promise<void> {
     await this.harvestRepository.delete(id);
   }
+
+  async removeByPropertyId(propertyId: string): Promise<void> {
+    await this.harvestRepository.delete({ property_id: propertyId });
+  }
 }

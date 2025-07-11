@@ -4,7 +4,6 @@ import { type RootState, type AppDispatch } from '../../stores/store';
 import { createFarm } from '../../stores/producer/slice';
 import {
   Container,
-  Box,
   Typography,
   Grid,
   TextField,

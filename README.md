@@ -9,44 +9,41 @@ Sistema completo de gestão agrícola desenvolvido com NestJS (backend) e React 
 - **Framework**: NestJS com TypeScript
 - **Banco de Dados**: PostgreSQL
 - **Autenticação**: JWT
+- **Logging**: Winston com logs estruturados em JSON
+- **Validação**: Zod e class-validator
 
 ### Frontend (React)
 
 - **Framework**: React 18 com TypeScript
 - **Build Tool**: Vite
-- **UI**: Material-UI (MUI)
+- **UI**: Material-UI (MUI) v6
 - **Estado**: Redux Toolkit
-- **Roteamento**: React Router
-- **Servidor**: Nginx (em produção)
+- **Formulários**: React Hook Form + Zod
+- **Máscaras**: react-imask
 
-### Serviços
+### Funcionalidades Principais
 
-- **PostgreSQL**: Banco de dados principal
+- ✅ Gestão de produtores rurais com validação de CPF/CNPJ
+- ✅ Cascade delete para manter integridade dos dados
+- ✅ Máscaras automáticas para CPF, CNPJ e telefone
+- ✅ Sistema de logging profissional com correlation IDs
+- ✅ Dashboard separado para visão pessoal vs admin
+- ✅ Validação robusta para evitar dados duplicados
 
-## 🚀 Execução com Docker (Recomendado)
+## 🚀 Execução com Docker
 
 ### Pré-requisitos
 
 - Docker 20.10+
 - Docker Compose 2.0+
 
-### Execução Completa (Um comando apenas)
+### Execução Completa
 
 ```bash
-# Clonar o repositório
 git clone <url-do-repositorio>
 cd Elastic_Code
-
-# Subir toda a aplicação
 docker-compose up --build
 ```
-
-Isso irá:
-
-1. Construir as imagens do backend e frontend
-2. Subir PostgreSQL
-3. Executar migrações do banco de dados
-4. Inicializar todos os serviços
 
 ### Acessos
 
@@ -63,40 +60,12 @@ docker-compose down
 # Ver logs em tempo real
 docker-compose logs -f
 
-# Parar e limpar tudo (incluindo volumes)
+# Reconstruir e reiniciar
+docker-compose up --build
+
+# Limpar tudo (incluindo volumes)
 docker-compose down -v
-
-# Reconstruir apenas um serviço
-docker-compose up --build backend
-
-# Executar comandos no backend
-docker-compose exec backend npm run migration:run
-
-# Executar testes
-docker-compose exec backend npm run test
-docker-compose exec frontend npm run test
 ```
-
-## 🛠️ Desenvolvimento Local
-
-### Usando Docker (Recomendado para desenvolvimento)
-
-```bash
-# Subir apenas dependências (banco, etc)
-docker-compose -f docker-compose.dev.yml up
-
-# Em outro terminal, executar backend localmente
-cd back
-npm install
-npm run start:dev
-
-# Em outro terminal, executar frontend localmente
-cd front
-npm install
-npm run dev
-```
-
-### Execução Tradicional (sem Docker)
 
 #### Pré-requisitos
 

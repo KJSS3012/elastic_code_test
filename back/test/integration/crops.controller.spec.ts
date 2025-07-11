@@ -8,6 +8,7 @@ import { Crop } from '../../src/modules/crops/entities/crop.entity';
 import { CreateCropDto } from '../../src/modules/crops/dto/create-crop.dto';
 import { UpdateCropDto } from '../../src/modules/crops/dto/update-crop.dto';
 import { AuthGuard } from '../../src/modules/auth/auth.guard';
+import { LoggingModule } from '../../src/shared/logging/logging.module';
 import { cropFixtures } from '../fixtures';
 import { getTestDatabaseConfig, cleanDatabase } from '../utils/test-helpers';
 
@@ -28,6 +29,7 @@ describe('CropsController (Integration)', () => {
       imports: [
         TypeOrmModule.forRoot(getTestDatabaseConfig()),
         TypeOrmModule.forFeature([Crop]),
+        LoggingModule,
       ],
       controllers: [CropsController],
       providers: [CropsService, CropsRepository],

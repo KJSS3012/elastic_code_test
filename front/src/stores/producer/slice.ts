@@ -43,6 +43,7 @@ export interface ProducerState {
   loading: boolean;
   error: string | null;
   dashboardStats: any;
+  personalDashboardStats: any;
 }
 
 const initialState: ProducerState = {
@@ -51,6 +52,7 @@ const initialState: ProducerState = {
   loading: false,
   error: null,
   dashboardStats: null,
+  personalDashboardStats: null,
 };
 
 // Async thunks para admin
@@ -244,6 +246,19 @@ export const removeCrop = createAsyncThunk(
   }
 );
 
+// Fetch personal dashboard stats for logged user
+export const fetchPersonalDashboardStats = createAsyncThunk(
+  "producer/fetchPersonalDashboardStats",
+  async (filters: DashboardFilters = {}, { rejectWithValue }) => {
+    try {
+      const response = await apiService.getFarmerDashboardStats(filters);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Erro ao buscar dados pessoais do dashboard');
+    }
+  }
+);
+
 const producerSlice = createSlice({
   name: "producer",
   initialState,
@@ -326,6 +341,19 @@ const producerSlice = createSlice({
       })
       .addCase(deleteFarm.fulfilled, (state, action) => {
         state.myFarms = state.myFarms.filter(f => f.id !== action.payload);
+      })
+      // Personal dashboard stats
+      .addCase(fetchPersonalDashboardStats.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPersonalDashboardStats.fulfilled, (state, action) => {
+        state.loading = false;
+        state.personalDashboardStats = action.payload;
+      })
+      .addCase(fetchPersonalDashboardStats.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string || action.error.message || 'Failed to fetch personal dashboard stats';
       });
     // Note: Removidos os handlers locais para harvest/crop pois estamos recarregando dados via fetchMyFarms
   },

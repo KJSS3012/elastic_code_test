@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { CropsService } from './crops.service';
 import { CropsRepository } from './crops.repository';
+import { LoggerService } from '../../shared/logging/logger.service';
 import { CreateCropDto } from './dto/create-crop.dto';
 import { UpdateCropDto } from './dto/update-crop.dto';
 import { cropFixtures } from '../../../test/fixtures';
@@ -18,6 +19,15 @@ describe('CropsService', () => {
     remove: jest.fn(),
   };
 
+  const mockLoggerService = {
+    log: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    generateCorrelationId: jest.fn(() => 'test-correlation-id'),
+    logBusinessOperation: jest.fn(),
+    logDatabaseOperation: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -25,6 +35,10 @@ describe('CropsService', () => {
         {
           provide: CropsRepository,
           useValue: mockRepository,
+        },
+        {
+          provide: LoggerService,
+          useValue: mockLoggerService,
         },
       ],
     }).compile();

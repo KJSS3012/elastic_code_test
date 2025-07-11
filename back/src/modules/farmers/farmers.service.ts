@@ -1,5 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { FarmersRepository } from './farmers.repository';
+import { PropertiesRepository } from '../properties/properties.repository';
+import { PropertyCropHarvestRepository } from '../property-crop-harvest/property-crop-harvest.repository';
+import { HavestRepository } from '../harvests/harvests.repository';
 import { CreateFarmerDto } from './dto/create-farmer.dto';
 import { UpdateFarmerDto } from './dto/update-farmer.dto';
 import * as bcrypt from 'bcrypt';
@@ -15,6 +18,9 @@ import { LogOperation } from '../../shared/logging/log-operation.decorator';
 export class FarmersService {
   constructor(
     private readonly farmersRepository: FarmersRepository,
+    private readonly propertiesRepository: PropertiesRepository,
+    private readonly propertyCropHarvestRepository: PropertyCropHarvestRepository,
+    private readonly harvestsRepository: HavestRepository,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
   ) { }
@@ -37,7 +43,11 @@ export class FarmersService {
         module: 'farmers',
         metadata: {
           email: CreateFarmerDto.email,
-          producer_name: CreateFarmerDto.producer_name
+          producer_name: CreateFarmerDto.producer_name,
+          cpf: CreateFarmerDto.cpf,
+          cnpj: CreateFarmerDto.cnpj,
+          cpf_length: CreateFarmerDto.cpf?.length,
+          cnpj_length: CreateFarmerDto.cnpj?.length
         }
       });
 
@@ -68,6 +78,63 @@ export class FarmersService {
           metadata: { email: CreateFarmerDto.email }
         });
         throw new BadRequestException('Email already exists');
+      }
+
+      // Normalizar CPF removendo caracteres especiais e espaços
+      if (CreateFarmerDto.cpf) {
+        CreateFarmerDto.cpf = CreateFarmerDto.cpf.replace(/\D/g, '').trim();
+      }
+      
+      // Normalizar CNPJ removendo caracteres especiais e espaços
+      if (CreateFarmerDto.cnpj) {
+        CreateFarmerDto.cnpj = CreateFarmerDto.cnpj.replace(/\D/g, '').trim();
+      }
+
+      // Verificar se CPF já existe (se fornecido)
+      if (CreateFarmerDto.cpf) {
+        this.logger.log('Checking CPF existence', {
+          correlationId,
+          metadata: { cpf: CreateFarmerDto.cpf, cpf_type: typeof CreateFarmerDto.cpf }
+        });
+        
+        const existingFarmerByCpf = await this.farmersRepository.findOneByCpf(CreateFarmerDto.cpf);
+        
+        this.logger.log('CPF check result', {
+          correlationId,
+          metadata: { 
+            cpf: CreateFarmerDto.cpf, 
+            exists: !!existingFarmerByCpf,
+            existingId: existingFarmerByCpf?.id 
+          }
+        });
+        
+        if (existingFarmerByCpf) {
+          const duration = Date.now() - startTime;
+          this.logger.warn('Farmer creation failed: CPF already exists', {
+            correlationId,
+            operation: 'create_farmer',
+            module: 'farmers',
+            duration,
+            metadata: { cpf: CreateFarmerDto.cpf }
+          });
+          throw new BadRequestException('CPF already exists');
+        }
+      }
+
+      // Verificar se CNPJ já existe (se fornecido)
+      if (CreateFarmerDto.cnpj) {
+        const existingFarmerByCnpj = await this.farmersRepository.findOneByCnpj(CreateFarmerDto.cnpj);
+        if (existingFarmerByCnpj) {
+          const duration = Date.now() - startTime;
+          this.logger.warn('Farmer creation failed: CNPJ already exists', {
+            correlationId,
+            operation: 'create_farmer',
+            module: 'farmers',
+            duration,
+            metadata: { cnpj: CreateFarmerDto.cnpj }
+          });
+          throw new BadRequestException('CNPJ already exists');
+        }
       }
 
       const hashedPassword = await this.hashPassword(CreateFarmerDto.password);
@@ -280,7 +347,7 @@ export class FarmersService {
     const startTime = Date.now();
 
     try {
-      this.logger.log('Deleting farmer', {
+      this.logger.log('Deleting farmer with cascade', {
         correlationId,
         operation: 'delete_farmer',
         module: 'farmers',
@@ -300,6 +367,65 @@ export class FarmersService {
         throw new BadRequestException('Farmer not found');
       }
 
+      // Step 1: Find all properties belonging to this farmer (get all pages)
+      const propertiesResult = await this.propertiesRepository.findByFarmerId(id, 1, 1000);
+      const properties = propertiesResult.data;
+
+      this.logger.log('Found properties for cascade delete', {
+        correlationId,
+        operation: 'delete_farmer',
+        module: 'farmers',
+        metadata: {
+          farmerId: id,
+          propertiesCount: properties.length,
+          propertyIds: properties.map(p => p.id)
+        }
+      });
+
+      // Step 2: For each property, delete related records using specific methods
+      for (const property of properties) {
+        // Delete PropertyCropHarvest records for this property
+        await this.propertyCropHarvestRepository.removeByPropertyId(property.id);
+
+        this.logger.log('Deleted PropertyCropHarvest records', {
+          correlationId,
+          operation: 'delete_farmer',
+          module: 'farmers',
+          metadata: {
+            farmerId: id,
+            propertyId: property.id
+          }
+        });
+
+        // Delete Harvest records for this property
+        await this.harvestsRepository.removeByPropertyId(property.id);
+
+        this.logger.log('Deleted Harvest records', {
+          correlationId,
+          operation: 'delete_farmer',
+          module: 'farmers',
+          metadata: {
+            farmerId: id,
+            propertyId: property.id
+          }
+        });
+
+        // Step 3: Delete the property itself
+        await this.propertiesRepository.remove(property.id);
+
+        this.logger.log('Deleted property', {
+          correlationId,
+          operation: 'delete_farmer',
+          module: 'farmers',
+          metadata: {
+            farmerId: id,
+            propertyId: property.id,
+            propertyName: property.farm_name
+          }
+        });
+      }
+
+      // Step 4: Finally, delete the farmer
       await this.farmersRepository.remove(id);
 
       this.logger.logDatabaseOperation('delete', 'farmers', Date.now() - startTime, {
@@ -316,11 +442,19 @@ export class FarmersService {
         userId: id,
         metadata: {
           email: farmer.email,
-          producer_name: farmer.producer_name
+          producer_name: farmer.producer_name,
+          propertiesDeleted: properties.length
         }
       });
 
-      return { message: 'Farmer removed successfully' };
+      return {
+        message: 'Farmer and all related data removed successfully',
+        deletedItems: {
+          farmer: 1,
+          properties: properties.length,
+          relatedRecords: 'PropertyCropHarvest and Harvest records deleted'
+        }
+      };
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.logBusinessOperation('delete_farmer', false, {

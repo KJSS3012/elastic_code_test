@@ -1,5 +1,5 @@
 # Dockerfile para o Backend (NestJS)
-FROM node:18-alpine AS development
+FROM node:20-alpine AS development
 
 # Instalar dependências do sistema necessárias
 RUN apk add --no-cache python3 make g++
@@ -22,10 +22,10 @@ COPY . .
 RUN npm run build
 
 # Estágio de produção
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
-# Instalar dependências do sistema
-RUN apk add --no-cache dumb-init
+# Instalar dependências do sistema (incluindo curl para health check)
+RUN apk add --no-cache dumb-init curl
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs
@@ -42,6 +42,9 @@ RUN npm ci --only=production && npm cache clean --force
 # Copiar build da aplicação do estágio anterior
 COPY --from=development --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=development --chown=nestjs:nodejs /app/node_modules ./node_modules
+
+# Criar diretório de logs com permissões corretas
+RUN mkdir -p logs && chown -R nestjs:nodejs logs
 
 # Mudar para usuário não-root
 USER nestjs

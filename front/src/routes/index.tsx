@@ -6,7 +6,7 @@ import { useAuthInterceptor } from '../hooks/useAuthInterceptor';
 import { getCurrentUser } from '../stores/auth/slice';
 import MainLayout from "../components/organisms/mainLayout";
 import AuthPage from "../pages/auth";
-import Dashboard from "../pages/dashboard";
+import Dashboard from '../pages/dashboard';
 import Producers from "../pages/producer";
 import PropertyCreate from "../pages/property";
 import PropertyList from "../pages/property/list";

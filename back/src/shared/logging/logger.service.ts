@@ -1,6 +1,8 @@
 import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
 import * as winston from 'winston';
 import { v4 as uuidv4 } from 'uuid';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface LogContext {
   correlationId?: string;
@@ -33,6 +35,16 @@ export class LoggerService implements NestLoggerService {
   private logger: winston.Logger;
 
   constructor() {
+    // Criar diretório de logs se não existir
+    const logsDir = path.join(process.cwd(), 'logs');
+    if (!fs.existsSync(logsDir)) {
+      try {
+        fs.mkdirSync(logsDir, { recursive: true });
+      } catch (error) {
+        console.warn('Could not create logs directory:', error.message);
+      }
+    }
+
     this.logger = winston.createLogger({
       level: process.env.LOG_LEVEL || 'info',
       format: winston.format.combine(
@@ -57,24 +69,40 @@ export class LoggerService implements NestLoggerService {
         service: 'elastic-back',
         environment: process.env.NODE_ENV || 'development',
       },
-      transports: [
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.simple()
-          )
-        }),
-        new winston.transports.File({
-          filename: 'logs/error.log',
-          level: 'error',
-          format: winston.format.json()
-        }),
-        new winston.transports.File({
-          filename: 'logs/combined.log',
-          format: winston.format.json()
-        })
-      ],
+      transports: this.createTransports(logsDir),
     });
+  }
+
+  private createTransports(logsDir: string): winston.transport[] {
+    const transports: winston.transport[] = [
+      new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.colorize(),
+          winston.format.simple()
+        )
+      })
+    ];
+
+    // Adicionar file transports apenas se o diretório existir
+    if (fs.existsSync(logsDir)) {
+      try {
+        transports.push(
+          new winston.transports.File({
+            filename: path.join(logsDir, 'error.log'),
+            level: 'error',
+            format: winston.format.json()
+          }),
+          new winston.transports.File({
+            filename: path.join(logsDir, 'combined.log'),
+            format: winston.format.json()
+          })
+        );
+      } catch (error) {
+        console.warn('Could not create file transports:', error.message);
+      }
+    }
+
+    return transports;
   }
 
   log(message: string, context?: LogContext) {

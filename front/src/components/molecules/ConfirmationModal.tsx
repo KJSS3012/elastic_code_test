@@ -4,7 +4,8 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Typography
+  Typography,
+  CircularProgress
 } from '@mui/material';
 import AccessibleDialog from './AccessibleDialog';
 
@@ -17,6 +18,7 @@ interface ConfirmationModalProps {
   confirmText?: string;
   cancelText?: string;
   confirmColor?: 'primary' | 'secondary' | 'error' | 'warning';
+  loading?: boolean;
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -27,11 +29,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   message,
   confirmText = 'Confirmar',
   cancelText = 'Cancelar',
-  confirmColor = 'error'
+  confirmColor = 'error',
+  loading = false
 }) => {
   const handleConfirm = () => {
     onConfirm();
-    onClose();
+    // Não fechar automaticamente - deixar o parent controlar
   };
 
   return (
@@ -50,11 +53,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         </Typography>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="primary">
+        <Button onClick={onClose} disabled={loading} color="primary">
           {cancelText}
         </Button>
-        <Button onClick={handleConfirm} color={confirmColor} variant="contained">
-          {confirmText}
+        <Button onClick={handleConfirm} disabled={loading} color={confirmColor} variant="contained">
+          {loading ? <CircularProgress size={20} /> : confirmText}
         </Button>
       </DialogActions>
     </AccessibleDialog>

@@ -39,6 +39,10 @@ export class FarmersRepository {
     return this.farmerRepository.findOne({ where: { cpf } });
   }
 
+  async findOneByCnpj(cnpj: string) {
+    return this.farmerRepository.findOne({ where: { cnpj } });
+  }
+
   async save(farmer: Farmer): Promise<Farmer> {
     return this.farmerRepository.save(farmer);
   }

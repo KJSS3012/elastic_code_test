@@ -345,6 +345,9 @@ export class PropertiesService {
     // Remover todas as relações PropertyCropHarvest antes de deletar a propriedade
     await this.propertyCropHarvestService.removeByPropertyId(id);
 
+    // Remover todas as Harvests relacionadas a esta propriedade
+    await this.harvestsService.removeByPropertyId(id);
+
     await this.propertiesRepository.remove(id);
     return {
       message: 'Property removed successfully',
