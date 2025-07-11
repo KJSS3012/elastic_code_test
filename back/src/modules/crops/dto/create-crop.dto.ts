@@ -1,8 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, IsString } from "class-validator";
-import { CommonDto } from "src/shared/common/dto/common.dto";
 
-export class CreateCropDto extends CommonDto {
+export class CreateCropDto {
   @ApiProperty({
     description: "Crop name",
     example: "Wheat",

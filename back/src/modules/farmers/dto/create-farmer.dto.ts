@@ -4,24 +4,27 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  ValidateIf,
+  Validate,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsCPF } from 'class-validator-cpf';
 
 export class CreateFarmerDto {
-  @ApiProperty({ description: "Farmer's CPF", example: '12345678900' })
+  @ApiPropertyOptional({ description: "Farmer's CPF", example: '12345678900' })
   @IsString()
-  @IsNotEmpty({ message: 'CPF must be provided' })
+  @IsOptional()
+  @ValidateIf((o) => o.cpf && o.cpf.length > 0)
   @IsCPF({ message: 'Invalid CPF format' })
-  cpf!: string;
+  cpf?: string;
 
   @ApiPropertyOptional({
     description: "Farmer's CNPJ",
     example: '12345678000199',
   })
   @IsString()
-  @MaxLength(14)
   @IsOptional()
+  @MaxLength(14)
   cnpj?: string;
 
   @ApiProperty({ description: "Farmer's name", example: 'John Doe' })

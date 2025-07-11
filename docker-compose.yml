@@ -1,16 +1,82 @@
-version: "3.8"
 services:
-  elastic-code:
-    image: postgres:16
-    container_name: elastic-code
-    restart: always
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: elastic_postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: elastic_code
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: postgres123
     ports:
       - "5432:5432"
     volumes:
-      - elastic_code_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - elastic_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d elastic_code"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend NestJS
+  backend:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+      target: production
+    container_name: elastic_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/elastic_code
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      BCRYPT_SALT_ROUNDS: 10
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - elastic_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+      target: production
+    container_name: elastic_frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:3000
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - elastic_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
 volumes:
-  elastic_code_data:
+  postgres_data:
+    driver: local
+
+networks:
+  elastic_network:
+    driver: bridge
